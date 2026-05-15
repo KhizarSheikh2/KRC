@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damper Controls</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1d1d30, #252540);
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Main container styling */
+        .control-panel {
+            background: #3b3b52;
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 280px;
+            text-align: center;
+            color: #ffffff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Icon styling */
+        .control-panel img {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 15px;
+        }
+
+        /* Title styling */
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #00d2ff;
+            margin-bottom: 20px;
+        }
+
+        /* Temperature control section */
+        .temp-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #464667;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 12px;
+        }
+
+        .cfm-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #464667;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 12px;
+        }
+
+        .temp-control span {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .cfm-control span {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Temperature control buttons */
+        .temp-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+        .cfm-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+
+        .temp-button.up {
+            background: linear-gradient(135deg, #ff4b4b, #ff1e1e);
+        }
+
+        .cfm-button.up {
+            background: linear-gradient(135deg, #ff4b4b, #ff1e1e);
+        }
+
+        .temp-button.down {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .cfm-button.down {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .temp-button:hover {
+            transform: scale(1.1);
+        }
+
+        .cfm-button:hover {
+            transform: scale(1.1);
+        }
+
+
+        .setting-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .setting-button {
+            padding: 12px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .setting-button:hover {
+            transform: scale(1.05);
+        }
+
+        #icon {
+            font-size: 50px;
+        }
+
+        h4 {
+            margin-bottom: 10px;
+        }
+
+        .label-box {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .box {
+            position: absolute;
+            top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #0f3460;
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .box-left {
+            left: 20px;
+        }
+
+        .box-right {
+            right: 20px;
+        }
+
+        .value {
+            color: #ffffff;
+            margin-bottom: 0px;
+        }
+
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+
+            .label {
+                font-size: 14px;
+            }
+
+            .toggle {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .tr {
+                font-size: 12px;
+            }
+
+            .tf {
+                font-size: 12px;
+            }
+            .box-right{
+                font-size: 12px;
+            }
+            .menu {
+                margin-top: 300px;
+            }
+            .control-panel{
+                margin-top: 26px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ttbox">
+        <!-- <div class="box box-left">
+            <span class="label-box">🕙Current Time:</span><span id="TIME" class="value">%time%</span>
+        </div> -->
+        <div class="box box-right">
+            <span class="label-box">🌡️Current Temperature:</span>
+            <span id="TEMP" class="value">%temp% °C</span>
+        </div>
+    </div>
+    <div class="control-panel">
+        <span id="icon">⏹️</span>
+
+        <div class="title">Damper Controls</div>
+
+
+        <h4>Set Point</h4>
+        <div class="temp-control">
+            <button class="temp-button up" onclick="adjustTemp(1)">+</button>
+            <span id="tempDisplay">`${temperature}°C`</span>
+            <button class="temp-button down" onclick="adjustTemp(-1)">−</button>
+        </div>
+
+        <h4>Supply CFM</h4>
+        <div class="cfm-control">
+            <button class="cfm-button up" onclick="adjustcfm(10)">+</button>
+            <span id="cfmDisplay">`${setcfm}%`</span>
+            <button class="cfm-button down" onclick="adjustcfm(-10)">−</button>
+        </div>
+
+        <div class="setting-buttons">
+            <button class="setting-button" onclick="toggleSeason()">Season: <span id="seasonText">season</span></button>
+            <button class="setting-button" onclick="toggleSetMode()">Mode: <span
+                    id="setModeText">setMode</span></button>
+        </div>
+    </div>
+
+    <script>
+
+        let temperature = 32;
+        let setcfm = 50;
+        let season = "Summer";
+        let setMode = "OFF";
+        var damperswitch = 0;
+        var seasonswitch = 0;
+
+
+
+        function adjustTemp(change) {
+            if (change == 1 && temperature >= 35) {
+                return;
+            }
+            if (change == -1 && temperature <= 0) {
+                return;
+            }
+
+            temperature += change;
+            console.log(temperature);
+            document.getElementById("tempDisplay").innerText = `${temperature}°C`;
+
+            sendData2();
+        }
+
+        function adjustcfm(change) {
+            if (change == 10 && setcfm >= 100) {
+                setcfm = 100;
+                return;
+            }
+            if (change == -10 && setcfm <= 0) {
+                setcfm = 0;
+                return;
+            }
+
+            setcfm += change;
+            document.getElementById("cfmDisplay").innerText = `${setcfm}%`;
+            sendData2();
+        }
+
+        function toggleSeason() {
+            season = (season === "Summer") ? "Winter" : "Summer";
+            document.getElementById("seasonText").innerText = season;
+            if (season == "Summer") {
+                seasonswitch = 1;
+            }
+            else {
+                seasonswitch = 0;
+            }
+            sendData2();
+        }
+
+        function toggleSetMode() {
+            setMode = (setMode === "OFF") ? "AUTO" : "OFF";
+            document.getElementById("setModeText").innerText = setMode;
+            if (setMode == "OFF") {
+                damperswitch = 0;
+            }
+            else {
+                damperswitch = 1;
+            }
+            sendData2();
+        }
+
+
+
+        function sendData2() {
+            let datatoesp = {};
+            const dampsetpoint = document.getElementById("tempDisplay");
+            const dampcfm = document.getElementById("cfmDisplay");
+            const dampseason = document.getElementById("seasonText");
+
+            const temp3 = parseInt(dampsetpoint.textContent);
+            const temp4 = parseInt(dampcfm.textContent);
+
+            datatoesp = {
+                SW4: damperswitch,
+                DAM_CFM: temp4,
+                SEASON: seasonswitch,
+                SETPOINT: temp3
+            };
+
+            console.log(datatoesp);
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "/sendDataDamper", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send(JSON.stringify(datatoesp));
+        }
+
+        function updateValuesdamper() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var data = JSON.parse(this.responseText);
+                    console.log(data);
+
+                    if (data.value1 == 0) {
+                        document.getElementById("setModeText").innerText = "OFF";
+                        damperswitch = 0;
+                    } else {
+                        document.getElementById("setModeText").innerText = "AUTO";
+                        damperswitch = 1;
+                    }
+
+                    if (data.value4 == 1) {
+                        document.getElementById("seasonText").innerText = "Summer";
+                        seasonswitch = 1;
+                    } else {
+                        document.getElementById("seasonText").innerText = "Winter";
+                        seasonswitch = 0;
+                    }
+
+                    // document.getElementById("tempDisplay").innerText = data.value5;
+                    
+                    if (data.value5 > 35){
+                        data.value5 = document.getElementById("tempDisplay").innerText;
+                    }
+                    else if(data.value5 <= 0){
+                        data.value5 = document.getElementById("tempDisplay").innerText;
+                    }
+                    
+                    document.getElementById("tempDisplay").innerText = `${data.value5}°C`;
+                    document.getElementById("cfmDisplay").innerText = `${data.value2}%`;
+                    document.getElementById("TEMP").innerText = `${data.value3}°C`;
+                    setcfm = parseInt(data.value2);
+                    temperature = parseInt(data.value5);
+
+
+                }
+            };
+            xhttp.open("GET", "/update_web_damper", true);
+            xhttp.send();
+        }
+
+        setInterval(updateValuesdamper, 1000);
+    </script>
+</body>
+
+</html>

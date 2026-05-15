@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load#2 Controls</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1d1d30, #252540);
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Main container styling */
+        .control-panel {
+            background: #3b3b52;
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 280px;
+            text-align: center;
+            color: #ffffff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Icon styling */
+        .control-panel img {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 15px;
+        }
+
+        /* Title styling */
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #00d2ff;
+            margin-bottom: 12px;
+        }
+
+        /* Temperature control section */
+        .load-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #464667;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .load-control span {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Temperature control buttons */
+        .load-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+        .load-button.up {
+            background: linear-gradient(135deg, #ff4b4b, #ff1e1e);
+        }
+
+        .load-button.down {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .load-button:hover {
+            transform: scale(1.1);
+        }
+        #icon{
+          font-size: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <span id="icon">💡</span>
+
+        <div class="title">Load 2 Controls
+        <br>
+        <br>
+        <h4>Intensity</h4>
+        </div>
+
+        <div class="load-control">
+            <button class="load-button up" onclick="adjustInten(10)">+</button>
+            <span id="loadDisplay2">`${intensity2}`</span>
+            <button class="load-button down" onclick="adjustInten(-10)">−</button>
+        </div>
+    </div>
+
+    <script>
+
+        let intensity2 = 10;
+        var loaddisplay2 = document.getElementById('loadDisplay2');
+    
+        function adjustInten(change) {
+            if (intensity2 <= 0 && change == -10) {
+                return;
+            }else if (intensity2 >= 100 && change == 10) {
+                return;
+            }
+            intensity2 += change;
+            document.getElementById("loadDisplay2").innerText = `${intensity2}`;
+            sendData2();
+        }
+
+        function sendData2() {
+            let datatoesp = {};
+            const LoadDisplay2 = document.getElementById("loadDisplay2");
+
+            const temp2 = parseInt(LoadDisplay2.textContent);
+
+            datatoesp = {
+                LOAD2_DIM: temp2
+            };
+
+            console.log(datatoesp);
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "/sendDataLoad2intensity", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send(JSON.stringify(datatoesp));
+        }
+
+        function updateValuesload2() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var data = JSON.parse(this.responseText);
+                    console.log(data);
+                    if (data.value9 >= 100){
+                        data.value9 = document.getElementById("loadDisplay2").innerText;
+                    }
+                    else if (data.value9 < 0){
+                        data.value9 = document.getElementById("loadDisplay2").innerText;
+                    }
+                    else if (data.value9 == 0){
+                        data.value9 = 0;
+                    }
+                    document.getElementById("loadDisplay2").innerText = data.value9;
+                    // loaddisplay2.textContent = parseInt(data.value9);
+                    intensity2 = parseInt(data.value9);
+                }
+            };
+            xhttp.open("GET", "/update_load2intensity", true);
+            xhttp.send();
+        }
+
+        setInterval(updateValuesload2, 1000);
+    </script>
+</body>
+</html>
