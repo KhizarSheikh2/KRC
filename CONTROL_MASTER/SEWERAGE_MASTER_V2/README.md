@@ -2,7 +2,7 @@
 
 ## Summary
 
-`SEWERAGE_MASTER_V2` provides sewerage monitoring and control for fluid level management, pump automation, and user feedback. It is designed for ESP32/Arduino IDE deployment.
+`SEWERAGE_MASTER_V2` provides sewerage monitoring and control for fluid level management, pump automation, and user feedback. It is designed for ESP32/Arduino IDE final production ready deployment.
 
 ## What it does
 

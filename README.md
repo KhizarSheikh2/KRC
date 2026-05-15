@@ -10,6 +10,7 @@ Each project folder includes an Arduino IDE sketch (`*.ino`), supporting headers
 
 - `CONTROL_MASTER/` — main automation suite with five Arduino IDE projects.
 - `DX_MINI_NANO_KHIZAR/` — compact local controller with display, scheduling, and MQTT support.
+- `RMS_Main/` — Room Management System for lighting, HVAC, and motorized blinds with HMI and MQTT integration.
 - `ZMB_Khizar/` — Wi-Fi credential management, API integration, servo control, and remote monitoring.
 
 ---
@@ -23,6 +24,7 @@ Each project folder includes an Arduino IDE sketch (`*.ino`), supporting headers
 - `CONTROL_MASTER/WT_COOLING_ETH_WIFI/README.md` — water tank cooling with Ethernet/Wi-Fi.
 - `CONTROL_MASTER/WT_COOLING_Final/README.md` — final water tank cooling controller.
 - `DX_MINI_NANO_KHIZAR/README.md` — compact ESP32 controller with scheduler and MQTT.
+- `RMS_Main/README.md` — Room Management System controller with AWS MQTT, dimmers, and HMI interface.
 - `ZMB_Khizar/README.md` — Wi-Fi credential server, API, IR, and servo control.
 
 ---
@@ -63,6 +65,7 @@ Each project folder includes an Arduino IDE sketch (`*.ino`), supporting headers
 
 - `CONTROL_MASTER` is organized into five distinct controller projects and includes advanced Wi-Fi/MQTT integration.
 - `DX_MINI_NANO_KHIZAR` is functional as a compact local controller with display, scheduler, and relay outputs.
+- `RMS_Main` handles comprehensive room automation including AC, lights, curtains, and dampers with local HMI and remote AWS MQTT control.
 - `ZMB_Khizar` includes Wi-Fi credential management, API fetching, OLED display, and servo control.
 
 ---
@@ -78,6 +81,7 @@ Each project folder includes an Arduino IDE sketch (`*.ino`), supporting headers
 │   ├── WT_COOLING_ETH_WIFI/
 │   └── WT_COOLING_Final/
 ├── DX_MINI_NANO_KHIZAR/
+├── RMS_Main/
 └── ZMB_Khizar/
 ```
 

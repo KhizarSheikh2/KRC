@@ -2,7 +2,7 @@
 
 ## Summary
 
-`WT_COOLING_Final` is the production-ready water tank cooling controller in the `CONTROL_MASTER` suite. It supports temperature-based fan and pump control with local OLED/keypad operation and Wi-Fi connectivity.
+`WT_COOLING_Final` is the Final production-ready water tank cooling controller in the `CONTROL_MASTER` suite. It supports temperature-based fan and pump control with local OLED/keypad operation and Wi-Fi connectivity.
 
 ## What it does
 
