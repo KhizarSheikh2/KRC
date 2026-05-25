@@ -118,13 +118,13 @@ void setup() {
   RS485Serial.begin(MODBUS_BAUD_RATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   Serial.println("RS485 OK");
 
-  // LOAD PREFERENCES FIRST - CRITICAL FOR NO JERK
+  // LOAD PREFERENCES FIRST
   preferences.begin("rms-states", true);
   loadAllStatesFromPreferences();
   preferences.end();
   Serial.println("States loaded from FLASH");
 
-  // PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY (NO JERK!)
+  // PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY
   Wire.begin();
   ioCon1.portMode(ALLOUTPUT);
   
@@ -139,7 +139,7 @@ void setup() {
   ioCon1.digitalWrite(7, dampersw_mqtt);    // Damper
   Serial.println("PCA9554 RESTORED - NO RELAY JERK!");
 
-  // Dimmers only (relays already perfect from step 3)
+  // Dimmers only
   control_func();
   Serial.println("Dimmers initialized");
 
@@ -166,7 +166,7 @@ void setup() {
 
   // Web Servers
   setupMobileAppServer();
-  setupDwinHMIEndpoints();  // NEW DWIN HMI ENDPOINTS
+  setupDwinHMIEndpoints();
   server.begin();
   
   Serial.println("🚀 RMS READY!");
@@ -401,7 +401,7 @@ void control_func() {
   actemp = (float)temp1;
   dmptemp = (float)temp1;
 
-  Serial.println("✅ L1:" + String(light1st) + "/" + String(light1int) + 
+  Serial.println(" L1:" + String(light1st) + "/" + String(light1int) + 
                  " L2:" + String(light2st) + "/" + String(light2int) +
                  " AC:" + String(acSwitch) + " TV:" + String(tvst));
 }
@@ -621,7 +621,7 @@ void setupDwinHMIEndpoints() {
   // =====================================================
   server.on("/sendtoRMS", HTTP_POST,
   [](AsyncWebServerRequest *request) {
-    Serial.println("🔥 HMI POST RECEIVED!");
+    Serial.println(" HMI POST RECEIVED!");
   },
   NULL,
   [](AsyncWebServerRequest *request,

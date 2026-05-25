@@ -19,6 +19,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+#include "esp_task_wdt.h"
 
 #define SSL_CLIENT_BUFFER_SIZE 2048
 #include <SSLClient.h>
@@ -729,6 +730,7 @@ bool initW5500() {
 }
 
 void setup() {
+  esp_task_wdt_init(10, true);  // 10s timeout
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL);
 

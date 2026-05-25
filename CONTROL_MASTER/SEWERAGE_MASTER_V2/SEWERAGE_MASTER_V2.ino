@@ -14,6 +14,7 @@
 #include "variables.h"
 #include "aws_certificates.h"
 #include "wifithread.h"
+#include "esp_task_wdt.h"
 
 #define I2C_SDA 21
 #define I2C_SCL 22
@@ -324,6 +325,8 @@ void handleAdjust(char key) {
 }
 
 void setup() {
+  esp_task_wdt_init(10, true);  // 10s timeout
+  
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL);
 

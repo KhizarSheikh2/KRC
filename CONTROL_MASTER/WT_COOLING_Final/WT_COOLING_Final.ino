@@ -20,6 +20,7 @@
 #include "aws_certificates.h"
 #include "variables.h"
 #include "wifithread.h"
+#include "esp_task_wdt.h"
 
 #define FAN_CONTROL_PIN 17
 #define PUMP_CONTROL_PIN 14
@@ -548,8 +549,8 @@ void handleAdjust(char key) {
 }
 
 void setup() {
+  esp_task_wdt_init(10, true);  // 10s timeout
 
-  // ioCon1.begin();
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL);
 
@@ -559,17 +560,6 @@ void setup() {
   }
 
   showStartupScreen();
-
-  // ioCon1.digitalWrite(0, LOW);
-  // ioCon1.digitalWrite(1, LOW);
-  // ioCon1.digitalWrite(2, LOW);
-  // ioCon1.digitalWrite(3, LOW);
-  // ioCon1.digitalWrite(4, LOW);
-  // ioCon1.digitalWrite(5, LOW);
-  // ioCon1.digitalWrite(6, LOW);
-  // ioCon1.digitalWrite(7, LOW);
-
-  // ioCon1.portMode(ALLOUTPUT);
 
   pinMode(WATER_LEVEL_PIN, INPUT_PULLUP);
   pinMode(FAN_CONTROL_PIN, OUTPUT);
