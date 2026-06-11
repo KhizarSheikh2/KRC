@@ -49,7 +49,7 @@
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define OLED_ADDRESS 0x3C
-#define BUZZER_PIN 12      // Choose an available GPIO pin
+#define BUZZER_PIN 12       // Choose an available GPIO pin
 #define BUZZER_FREQ 2000   // Frequency in Hz (2 kHz typical)
 #define BUZZER_DURATION 50 // Duration in ms
 
@@ -73,7 +73,7 @@ int current_mode = TEMPERATURE;
 
 void beep(int duration = BUZZER_DURATION, int freq = BUZZER_FREQ) {
   tone(BUZZER_PIN, freq, duration);   // Non-blocking tone
-  delay(10); // Small delay to ensure it triggers
+  delay(400); // Small delay to ensure it triggers
 }
 
 void showCenteredText(const char* text, uint8_t textSize = 2, int yOffset = 0) {
@@ -291,29 +291,27 @@ void inputs() {
 }
 
 void fan_auto_control() {
-  if (temper > sp && op == 0) {
-    //ioCon1.digitalWrite(4, HIGH);
-    // digitalWrite(FAN_CONTROL_PIN, HIGH); // For ESP32 Board
+  if (op != 0) return;  // temp still stabilising
+
+  if (temper > sp + hyst) {
     fanstate = 1;
-  } else if (temper <= sp && op == 0) {
-    //ioCon1.digitalWrite(4, LOW);
-    // digitalWrite(FAN_CONTROL_PIN, LOW); // For ESP32 Board
+  } else if (temper <= sp - hyst) {
     fanstate = 0;
   }
-  
+  // Inside the band: do nothing — hold current state
 }
+
 void pump_auto_control() {
-  if (waterlevel == 0) {
-    //ioCon1.digitalWrite(5, HIGH);
-    // digitalWrite(PUMP_CONTROL_PIN, HIGH); // For ESP32 Board
+  if (pumpstate == 0 && waterlevel == 0) {
+    // Tank empty, pump is off → start filling
     pumpstate = 1;
-  } else if (waterlevel == 1) {
-    //ioCon1.digitalWrite(5, LOW);
-    // digitalWrite(PUMP_CONTROL_PIN, LOW); // For ESP32 Board
+  } else if (pumpstate == 1 && waterlevel == 1) {
+    // Tank full, pump is on → stop filling
     pumpstate = 0;
   }
-  
+  // Sensor bouncing at boundary → hold current pumpstate
 }
+
 void fan_manual_control() {
   if (fansw == 1) {
     // ioCon1.digitalWrite(4, HIGH);
@@ -326,6 +324,7 @@ void fan_manual_control() {
   }
   
 }
+
 void pump_manual_control() {
   if (pumpsw == 1) {
     // ioCon1.digitalWrite(5, HIGH);

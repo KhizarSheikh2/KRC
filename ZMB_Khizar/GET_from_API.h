@@ -72,6 +72,7 @@ void updateTimeNow() {
       break;
     case 12:
       month = "Dec";
+      break;
     default:
       month = "Jan";
       break;

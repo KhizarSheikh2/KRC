@@ -126,6 +126,9 @@ bool main_control = true;
 uint8_t prev_fanstate = 255;
 uint8_t prev_pumpstate = 255;
 
+int hyst = 1;  // ±1°C dead band — save/load via Preferences like sp
+int pump_hyst = 0;
+
 bool is_wifi_connected = false;
 
 bool wifi_ap_mode = false;

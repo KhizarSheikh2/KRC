@@ -72,11 +72,13 @@ float actemp=22.0, dmptemp=10.0, dmptempsp=22.0;
 String dampstate="CLOSED";
 String macaddress;
 unsigned long lastMqttStatus = 0;
+bool firstBoot = true;
+
 
 // HMI Bridge Variables
 volatile uint16_t light1sw=0, light2sw=0, tvsw=0, damperswitch=0, shuttersw=0, curtainsw=0;
 volatile uint16_t light1st=0, light2st=0, tvst=0, shst=0, curtainst=0;
-volatile uint16_t light1int=10, light2int=10;
+volatile uint16_t light1int=10, light2int=10, ;
 volatile uint16_t scfm[4]={0}, seasonsw=0, SP=22;
 volatile uint16_t temper=0, temp1=0;
 
@@ -108,23 +110,25 @@ void saveAllStatesToPreferences();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 
 // =====================================================
-// SETUP - HMI AP PRIORITY + MQTT
+// SETUP - HMI AP PRIORITY + MQTT 
 // =====================================================
 void setup() {
   Serial.begin(115200);
   Serial.println("=== RMS-AAA001 HMI + MQTT READY ===");
 
-  // RS485 first (safe)
-  RS485Serial.begin(MODBUS_BAUD_RATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
-  Serial.println("RS485 OK");
+  firstBoot = true;  // BOOT FLAG
 
-  // LOAD PREFERENCES FIRST
+  // 1. RS485 first (safe)
+  RS485Serial.begin(MODBUS_BAUD_RATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+  Serial.println("✅ RS485 OK");
+
+  // 2. LOAD PREFERENCES FIRST
   preferences.begin("rms-states", true);
   loadAllStatesFromPreferences();
   preferences.end();
-  Serial.println("States loaded from FLASH");
+  Serial.println("✅ States loaded from FLASH");
 
-  // PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY
+  // 3. PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY
   Wire.begin();
   ioCon1.portMode(ALLOUTPUT);
   
@@ -137,34 +141,34 @@ void setup() {
   ioCon1.digitalWrite(5, shuttersw_mqtt);   // Shutters
   ioCon1.digitalWrite(6, curtainsw_mqtt);   // Curtains
   ioCon1.digitalWrite(7, dampersw_mqtt);    // Damper
-  Serial.println("PCA9554 RESTORED - NO RELAY JERK!");
+  Serial.println("✅ PCA9554 RESTORED - NO RELAY JERK!");
 
-  // Dimmers only
+  // 4. Dimmers only
   control_func();
-  Serial.println("Dimmers initialized");
+  Serial.println("✅ Boot dimmers done - RELAYS SILENT!");
 
   // 5. Storage & Sensors
   if (!SPIFFS.begin(true)) Serial.println("❌ SPIFFS Failed"); 
-  else Serial.println("SPIFFS OK");
+  else Serial.println("✅ SPIFFS OK");
 
   DimmableLight::setSyncPin(syncPin);
   DimmableLight::begin();
   sensors.begin();
-  Serial.println("Dimmer/Sensors OK");
+  Serial.println("✅ Dimmer/Sensors OK");
 
-  // HMI AP ALWAYS FIRST - 192.168.4.1
+  // 6. HMI AP ALWAYS FIRST - 192.168.4.1
   macaddress = WiFi.macAddress();
   Serial.println("MAC: " + macaddress);
-  Access_Point();  // HMI AP ALWAYS ON
+  Access_Point();
   
-  // Try home WiFi AFTER HMI AP (AP stays running)
+  // 7. Try home WiFi AFTER HMI AP (AP stays running)
   setup_wifi_credentials();
 
-  // MQTT Setup
+  // 8. MQTT Setup
   mqtt_client.setServer(mqtt_server, mqtt_port);
   mqtt_client.setCallback(mqttCallback);
 
-  // Web Servers
+  // 9. Web Servers
   setupMobileAppServer();
   setupDwinHMIEndpoints();
   server.begin();
@@ -291,11 +295,11 @@ void Extract_by_json(String incomingMessage) {
   
   DeserializationError error = deserializeJson(doc, incomingMessage);
   if (error) {
-    Serial.println("❌ JSON ERROR: " + String(error.c_str()));
+    Serial.println(" JSON ERROR: " + String(error.c_str()));
     return;
   }
 
-  Serial.println("✅ MQTT JSON Parsed OK");
+  Serial.println(" MQTT JSON Parsed OK");
 
   
   bool changed = false;
@@ -365,8 +369,9 @@ void publishRMSStatus() {
 // HARDWARE CONTROL
 // =====================================================
 void control_func() {
-  Serial.println("⚙️  HARDWARE CONTROL");
+  Serial.println("⚙️ HARDWARE CONTROL");
 
+  // LIGHTS ONLY - Dimmer control always
   // Light 1 (PCA9554 Pin 0)
   if (light1sw == 0 || light1int == 0) {
     ioCon1.digitalWrite(0, LOW);
@@ -389,21 +394,29 @@ void control_func() {
     light2st = 1;
   }
 
-  // ON/OFF Devices
-  ioCon1.digitalWrite(2, acSwitch);           // AC
-  ioCon1.digitalWrite(3, roomFan);            // Room Fan  
-  ioCon1.digitalWrite(4, tvsw); tvst = tvsw;  // Smart TV
-  ioCon1.digitalWrite(5, shuttersw); shst = shuttersw;
-  ioCon1.digitalWrite(6, curtainsw); curtainst = curtainsw;
+  // RELAYS - SKIP ON FIRST BOOT (already set perfectly in setup())
+  if (!firstBoot) {
+    ioCon1.digitalWrite(2, acSwitch);           // AC
+    ioCon1.digitalWrite(3, roomFan);            // Room Fan  
+    ioCon1.digitalWrite(4, tvsw); tvst = tvsw;  // Smart TV
+    ioCon1.digitalWrite(5, shuttersw); shst = shuttersw;
+    ioCon1.digitalWrite(6, curtainsw); curtainst = curtainsw;
+    Serial.println("🔄 Relays updated");
+  } else {
+    Serial.println("🔒 Boot: Relays skipped (already perfect)");
+  }
 
   // Status updates 
   dampstate = (damperswitch == 1) ? "OPEN" : "CLOSED";
   actemp = (float)temp1;
   dmptemp = (float)temp1;
 
-  Serial.println(" L1:" + String(light1st) + "/" + String(light1int) + 
+  Serial.println("✅ L1:" + String(light1st) + "/" + String(light1int) + 
                  " L2:" + String(light2st) + "/" + String(light2int) +
                  " AC:" + String(acSwitch) + " TV:" + String(tvst));
+
+  // Enable relay control for NEXT calls
+  firstBoot = false;
 }
 
 // =====================================================
@@ -484,7 +497,7 @@ void Access_Point() {
 
 bool connect_to_wifi() {
   Serial.println("🔗 Connecting WiFi: " + ssid);
-  WiFi.mode(WIFI_AP_STA);  // ✅ HMI AP + Home WiFi
+  WiFi.mode(WIFI_AP_STA);
   WiFi.setHostname(devicename.c_str());
   WiFi.begin(ssid.c_str(), pass.c_str());
 
@@ -555,10 +568,10 @@ void setupMobileAppServer() {
 }
 
 // =====================================================
-// 🔥 NEW DWIN HMI ENDPOINTS
+// NEW DWIN HMI ENDPOINTS
 // =====================================================
 void setupDwinHMIEndpoints() {
-  Serial.println("🔥 DWIN HMI Endpoints Active - http://192.168.4.1");
+  Serial.println("DWIN HMI Endpoints Active - http://192.168.4.1");
 
   // =====================================================
   // SEND DATA TO DWIN (ESP8266 fetchData())
@@ -621,7 +634,7 @@ void setupDwinHMIEndpoints() {
   // =====================================================
   server.on("/sendtoRMS", HTTP_POST,
   [](AsyncWebServerRequest *request) {
-    Serial.println(" HMI POST RECEIVED!");
+    Serial.println("🔥 HMI POST RECEIVED!");
   },
   NULL,
   [](AsyncWebServerRequest *request,

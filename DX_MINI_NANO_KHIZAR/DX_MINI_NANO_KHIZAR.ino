@@ -230,30 +230,46 @@ void loop() {
     }
 
     // ===== EVAP COOL SYSTEM =====
-    if (EVAP_COOL_SYSTEM_SWITCH == 1 && !EVAP_COOL_SYSTEM_STATUS) {
-      EVAP_COOL_SYSTEM_STATUS = true;
-      digitalWrite(EVAP_COOL_SYSTEM, HIGH);
-    } else if (EVAP_COOL_SYSTEM_SWITCH == 0 && EVAP_COOL_SYSTEM_STATUS) {
-      EVAP_COOL_SYSTEM_STATUS = false;
-      digitalWrite(EVAP_COOL_SYSTEM, LOW);
+    if (EVAP_COOL_SYSTEM_SWITCH != (int)EVAP_COOL_SYSTEM_STATUS) {
+      if (EVAP_COOL_SYSTEM_PENDING != EVAP_COOL_SYSTEM_SWITCH) {
+        EVAP_COOL_SYSTEM_PENDING = EVAP_COOL_SYSTEM_SWITCH;
+        evapCoolPendingTime = millis();
+      } else if (millis() - evapCoolPendingTime >= RELAY_SWITCH_DELAY) {
+        EVAP_COOL_SYSTEM_STATUS = (EVAP_COOL_SYSTEM_SWITCH == 1);
+        digitalWrite(EVAP_COOL_SYSTEM, EVAP_COOL_SYSTEM_STATUS ? HIGH : LOW);
+        EVAP_COOL_SYSTEM_PENDING = -1;
+      }
+    } else {
+      EVAP_COOL_SYSTEM_PENDING = -1;
     }
 
     // ===== AUTO WASH SYSTEM (R2) =====
     if (AUTO_WASH_SYSTEM_SWITCH == 1 && !AUTO_WASH_SYSTEM_STATUS) {
+      if (AUTO_WASH_SYSTEM_PENDING != 1) {
+        AUTO_WASH_SYSTEM_PENDING = 1;
+        autoWashPendingTime = millis();
+      } else if (millis() - autoWashPendingTime >= RELAY_SWITCH_DELAY) {
+        AUTO_WASH_SYSTEM_STATUS = true;
+        digitalWrite(AUTO_WASH_SYSTEM, HIGH);
+        AUTO_WASH_SYSTEM_PENDING = -1;
 
-      AUTO_WASH_SYSTEM_STATUS = true;
-      digitalWrite(AUTO_WASH_SYSTEM, HIGH);
-
-      // INTERLOCK
-      UNIT_COMMAND_STATUS = false;
-      UNIT_COMMAND_SWITCH = 0;
-      digitalWrite(UNIT_COMMAND, LOW);
-    }
-
-    else if (AUTO_WASH_SYSTEM_SWITCH == 0 && AUTO_WASH_SYSTEM_STATUS) {
-
-      AUTO_WASH_SYSTEM_STATUS = false;
-      digitalWrite(AUTO_WASH_SYSTEM, LOW);
+        // INTERLOCK
+        UNIT_COMMAND_STATUS = false;
+        UNIT_COMMAND_SWITCH = 0;
+        UNIT_COMMAND_PENDING = -1;
+        digitalWrite(UNIT_COMMAND, LOW);
+      }
+    } else if (AUTO_WASH_SYSTEM_SWITCH == 0 && AUTO_WASH_SYSTEM_STATUS) {
+      if (AUTO_WASH_SYSTEM_PENDING != 0) {
+        AUTO_WASH_SYSTEM_PENDING = 0;
+        autoWashPendingTime = millis();
+      } else if (millis() - autoWashPendingTime >= RELAY_SWITCH_DELAY) {
+        AUTO_WASH_SYSTEM_STATUS = false;
+        digitalWrite(AUTO_WASH_SYSTEM, LOW);
+        AUTO_WASH_SYSTEM_PENDING = -1;
+      }
+    } else {
+      AUTO_WASH_SYSTEM_PENDING = -1;
     }
 
     // ===== UNIT COMMAND (R3) =====
@@ -263,11 +279,25 @@ void loop() {
     }
 
     if (UNIT_COMMAND_SWITCH == 1 && !UNIT_COMMAND_STATUS) {
-      UNIT_COMMAND_STATUS = true;
-      digitalWrite(UNIT_COMMAND, HIGH);
+      if (UNIT_COMMAND_PENDING != 1) {
+        UNIT_COMMAND_PENDING = 1;
+        unitCmdPendingTime = millis();
+      } else if (millis() - unitCmdPendingTime >= RELAY_SWITCH_DELAY) {
+        UNIT_COMMAND_STATUS = true;
+        digitalWrite(UNIT_COMMAND, HIGH);
+        UNIT_COMMAND_PENDING = -1;
+      }
     } else if (UNIT_COMMAND_SWITCH == 0 && UNIT_COMMAND_STATUS) {
-      UNIT_COMMAND_STATUS = false;
-      digitalWrite(UNIT_COMMAND, LOW);
+      if (UNIT_COMMAND_PENDING != 0) {
+        UNIT_COMMAND_PENDING = 0;
+        unitCmdPendingTime = millis();
+      } else if (millis() - unitCmdPendingTime >= RELAY_SWITCH_DELAY) {
+        UNIT_COMMAND_STATUS = false;
+        digitalWrite(UNIT_COMMAND, LOW);
+        UNIT_COMMAND_PENDING = -1;
+      }
+    } else {
+      UNIT_COMMAND_PENDING = -1;
     }
 
   } else {  // AUTO MODE
@@ -277,39 +307,83 @@ void loop() {
     // ===== AUTO WASH SCHEDULE =====
     if (tmatched && timeschen) {
 
-      // Start Auto Wash
-      AUTO_WASH_SYSTEM_STATUS = true;
-      digitalWrite(AUTO_WASH_SYSTEM, HIGH);  // R2 ON
+      // Start Auto Wash (with delay)
+      if (AUTO_WASH_SYSTEM_PENDING != 1) {
+        AUTO_WASH_SYSTEM_PENDING = 1;
+        autoWashPendingTime = millis();
+      } else if (millis() - autoWashPendingTime >= RELAY_SWITCH_DELAY) {
+        AUTO_WASH_SYSTEM_STATUS = true;
+        digitalWrite(AUTO_WASH_SYSTEM, HIGH);  // R2 ON
+        AUTO_WASH_SYSTEM_PENDING = -1;
 
-      // Cooling must stop during wash
-      UNIT_COMMAND_STATUS = false;
-      UNIT_COMMAND_SWITCH = 0;
-      digitalWrite(UNIT_COMMAND, LOW);
-
-    } else {
-
-      // Cooling on!
-      if (!UNIT_COMMAND_STATUS) {
-        UNIT_COMMAND_STATUS = true;
-        UNIT_COMMAND_SWITCH = 1;
-        digitalWrite(UNIT_COMMAND, HIGH);
+        // Cooling must stop during wash (immediate interlock, no delay)
+        UNIT_COMMAND_STATUS = false;
+        UNIT_COMMAND_SWITCH = 0;
+        UNIT_COMMAND_PENDING = -1;
+        digitalWrite(UNIT_COMMAND, LOW);
       }
 
-      // Stop Auto Wash
-      AUTO_WASH_SYSTEM_STATUS = false;
-      digitalWrite(AUTO_WASH_SYSTEM, LOW);
-    }
-    // ===== COOLING CONTROL =====
-    if (dischargeTemp >= dischargeSp) {
-      EVAP_COOL_SYSTEM_STATUS = true;
-      EVAP_COOL_SYSTEM_SWITCH = 1;
-      digitalWrite(EVAP_COOL_SYSTEM, HIGH);
-      SYSTEM_STATUS = 1;
     } else {
-      EVAP_COOL_SYSTEM_STATUS = false;
-      EVAP_COOL_SYSTEM_SWITCH = 0;
-      digitalWrite(EVAP_COOL_SYSTEM, LOW);
-      SYSTEM_STATUS = 0;
+
+      AUTO_WASH_SYSTEM_PENDING = -1;
+
+      // Stop Auto Wash (with delay)
+      if (AUTO_WASH_SYSTEM_STATUS) {
+        if (AUTO_WASH_SYSTEM_PENDING != 0) {
+          AUTO_WASH_SYSTEM_PENDING = 0;
+          autoWashPendingTime = millis();
+        } else if (millis() - autoWashPendingTime >= RELAY_SWITCH_DELAY) {
+          AUTO_WASH_SYSTEM_STATUS = false;
+          digitalWrite(AUTO_WASH_SYSTEM, LOW);
+          AUTO_WASH_SYSTEM_PENDING = -1;
+        }
+      }
+
+      // Cooling on! (with delay)
+      if (!UNIT_COMMAND_STATUS) {
+        if (UNIT_COMMAND_PENDING != 1) {
+          UNIT_COMMAND_PENDING = 1;
+          unitCmdPendingTime = millis();
+        } else if (millis() - unitCmdPendingTime >= RELAY_SWITCH_DELAY) {
+          UNIT_COMMAND_STATUS = true;
+          UNIT_COMMAND_SWITCH = 1;
+          digitalWrite(UNIT_COMMAND, HIGH);
+          UNIT_COMMAND_PENDING = -1;
+        }
+      } else {
+        UNIT_COMMAND_PENDING = -1;
+      }
+    }
+
+    // ===== COOLING CONTROL (with hysteresis + confirmation delay) =====
+    // ON  only when temp rises ABOVE (setpoint + deadband)
+    // OFF only when temp falls BELOW (setpoint - deadband)
+    // Inside the band: hold current relay state — no switching
+    if (dischargeTemp >= (float)dischargeSp + TEMP_HYSTERESIS) {
+      if (EVAP_COOL_SYSTEM_PENDING != 1) {
+        EVAP_COOL_SYSTEM_PENDING = 1;
+        evapCoolPendingTime = millis();
+      } else if (millis() - evapCoolPendingTime >= RELAY_SWITCH_DELAY) {
+        EVAP_COOL_SYSTEM_STATUS = true;
+        EVAP_COOL_SYSTEM_SWITCH = 1;
+        digitalWrite(EVAP_COOL_SYSTEM, HIGH);
+        SYSTEM_STATUS = 1;
+        EVAP_COOL_SYSTEM_PENDING = -1;
+      }
+    } else if (dischargeTemp <= (float)dischargeSp - TEMP_HYSTERESIS) {
+      if (EVAP_COOL_SYSTEM_PENDING != 0) {
+        EVAP_COOL_SYSTEM_PENDING = 0;
+        evapCoolPendingTime = millis();
+      } else if (millis() - evapCoolPendingTime >= RELAY_SWITCH_DELAY) {
+        EVAP_COOL_SYSTEM_STATUS = false;
+        EVAP_COOL_SYSTEM_SWITCH = 0;
+        digitalWrite(EVAP_COOL_SYSTEM, LOW);
+        SYSTEM_STATUS = 0;
+        EVAP_COOL_SYSTEM_PENDING = -1;
+      }
+    } else {
+      // Inside deadband — cancel any pending change, hold current state
+      EVAP_COOL_SYSTEM_PENDING = -1;
     }
 
     // ===== RETURN AIR ALARM =====

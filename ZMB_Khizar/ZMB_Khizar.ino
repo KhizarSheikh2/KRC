@@ -145,7 +145,6 @@ void Init() {
   end_value = preferences.getInt("cfm_max", 50);
   preferences.end();
 
-  // Fix servo_close_pos using origin constants (prevents self-corruption)
   // servo_close_pos = map(start_value, 0, 100, SERVO_CLOSE_ORIGIN, SERVO_OPEN_ORIGIN);
   servo_close_pos = map(start_value, 0, 100, servo_close_pos, servo_open_pos);
 
@@ -657,7 +656,7 @@ void loop() {
   if (power && lastHeldKey != 0) {
     if (keypad.getState() == HOLD) {
 
-      // ❗ BLOCK repeat for Season mode
+      // BLOCK repeat for Season mode
       if (current_mode == Season_sc) return;
 
       if (lastHeldKey == '3' || lastHeldKey == '4') {

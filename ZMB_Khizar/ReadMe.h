@@ -29,7 +29,8 @@ IOConn_7 Free
 */
 
 /*
-  FOR NANO
+
+Damper without BECA NANO
 2 servo
 4  temp sensor
 19 potentiometer

@@ -10,6 +10,15 @@ bool PowerState = true;
 #define MQTT_INTERVAL 2500
 #define SENSOR_READ_INTERVAL 1000
 
+// ---- Relay switching delay (ms) ----
+#define RELAY_SWITCH_DELAY 5000   // 5 seconds confirmation before any relay changes state
+
+// ---- Hysteresis deadband (°C) ----
+// Relay turns ON only when temp rises above (setpoint + TEMP_HYSTERESIS)
+// Relay turns OFF only when temp falls below (setpoint - TEMP_HYSTERESIS)
+// In between: hold current state -> prevents chattering near setpoint
+#define TEMP_HYSTERESIS 0.5f
+
 ////////////////////Temperature Sensor DS18B20///////////////////
 #define DS18B20_PIN 19
 /////////////////////////////////////////////////////////////////
@@ -97,6 +106,16 @@ int SYSTEM_STATUS = 0;
 bool EVAP_COOL_SYSTEM_STATUS = false;  // RELAY 1
 bool AUTO_WASH_SYSTEM_STATUS = false;  // RELAY 2
 bool UNIT_COMMAND_STATUS = false;      // RELAY 3
+
+// ---- Relay delay tracking ----
+// Each relay stores the desired (pending) state and when that request arrived.
+// The relay only switches after RELAY_SWITCH_DELAY ms of the pending state being stable.
+int  EVAP_COOL_SYSTEM_PENDING   = -1;   // -1 = no pending change
+int  AUTO_WASH_SYSTEM_PENDING   = -1;
+int  UNIT_COMMAND_PENDING       = -1;
+unsigned long evapCoolPendingTime  = 0;
+unsigned long autoWashPendingTime  = 0;
+unsigned long unitCmdPendingTime   = 0;
 
 float SupplyTemp = 0;
 float ReturnTemp = 0;

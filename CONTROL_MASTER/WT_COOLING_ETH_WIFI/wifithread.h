@@ -22,6 +22,7 @@ void DEVICE_INIT() {
   preferences.begin("parameters", false);
 
   sp = preferences.getUInt("sp", 20);
+  hyst = preferences.getUInt("hyst", 1);
   fansw = preferences.getUInt("fansw", 0);
   pumpsw = preferences.getUInt("pumpsw", 0);
   main_control = preferences.getBool("main_control", false);

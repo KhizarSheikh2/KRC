@@ -77,6 +77,10 @@ void Extract_by_json(String incomingMessage) {
   }
   preferences.begin("parameters", false);
   bool mainControlChanged = false;  // Flag to track if main_control changed
+  bool fanSwChanged = false;        // Flag to track if fansw changed
+  bool pumpSwChanged = false;       // Flag to track if pumpsw changed
+  bool fanControlChanged = false;   // Flag to track if fancontrol (Auto/Manual) changed
+  bool pumpControlChanged = false;  // Flag to track if pumpcontrol (Auto/Manual) changed
   
   if (doc.containsKey("maincontrol")) {
     int newMainControl = doc["maincontrol"].as<int>();
@@ -172,14 +176,28 @@ void Extract_by_json(String incomingMessage) {
   else if (main_control) {
     // Only show fan/pump changes if main control is ON
     if (fanSwChanged) {
+      // current_mode = FAN;
       showCenteredText(fanstate ? "FAN ON" : "FAN OFF", 2, 0);
       updateControlOutputs();
       delay(800);
       updateDisplay();
     }
     else if (pumpSwChanged) {
+      // current_mode = PUMP;
       showCenteredText(pumpstate ? "PUMP ON" : "PUMP OFF", 2, 0);
       updateControlOutputs();
+      delay(800);
+      updateDisplay();
+    }
+    else if (fanControlChanged) {
+      // current_mode = FAN;
+      showCenteredText(fan_control ? "FAN AUTO" : "FAN MANUAL", 2, 0);
+      delay(800);
+      updateDisplay();
+    }
+    else if (pumpControlChanged) {
+      // current_mode = PUMP;
+      showCenteredText(pump_control ? "PUMP AUTO" : "PUMP      MANUAL", 2, 0);
       delay(800);
       updateDisplay();
     }
