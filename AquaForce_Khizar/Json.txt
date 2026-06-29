@@ -1,0 +1,133 @@
+publish:
+void _handleMessageDM(String message, topics) async {
+    try {
+      Map<String, dynamic> jsonMap = jsonDecode(message);
+      int tempSelect = jsonMap['tempSelect'] ?? 0;
+      dmStatus.value = int.tryParse(jsonMap['status']?.toString() ?? '') ?? 0;
+      dmSupply.value =
+          double.tryParse(jsonMap['supplyTemp']?.toString() ?? '') ?? 0.0;
+      dmSetpoint.value =
+          int.tryParse(jsonMap['setPoint']?.toString() ?? '') ?? 0;
+      dmReturn.value =
+          double.tryParse(jsonMap['return']?.toString() ?? '') ?? 0.0;
+      dmPower.value =
+          int.tryParse(jsonMap['powerSwitch']?.toString() ?? '') ?? 0;
+      dmResetValues.value =
+          int.tryParse(jsonMap['resetValues']?.toString() ?? '') ?? 0;
+      dmCelciusToFahrenheit.value =
+          int.tryParse(jsonMap['celciusToFahrenheit']?.toString() ?? '') ?? 0;
+      tempSelectionSwitch.value = tempSelect == 1;
+      log("Updated connection List: $deviceConnections");
+      log("Received MQTT Data:");
+    } catch (e) {
+      log("Error parsing JSON: DM $e");
+    }
+  }
+
+
+recieve:
+  void buildJsonPayloadDXMaster() {
+    Map<String, dynamic> jsonPayload = {
+      "setPoint": dmSetpoint.value,
+      "powerSwitch": dmPower.value,
+      "resetValues": dmResetValues.value,
+      "celciusToFahrenheit": dmCelciusToFahrenheit.value,
+      "tempSelect": tempSelectionSwitch.value ? 1 : 0,
+    };
+    String jsonString = jsonEncode(jsonPayload);
+    publishMessage(jsonString);
+  }
+
+recieve:
+A on /2
+b on /3 
+publish
+"/KRC/DM-AAA001/CircuitB"
+"/KRC/DM-AAA001/CircuitA" 
+
+  Map<String, dynamic> jsonMap = jsonDecode(message);
+      int leadlagB = jsonMap['leadlagB'] ?? 0;
+      int enableB = jsonMap['enableB'] ?? 0;
+      int fansw12B = jsonMap['fan1EB'] ?? 0;
+      int fansw34B = jsonMap['fan3EB'] ?? 0;
+      int fansw56B = jsonMap['fan5EB'] ?? 0;
+      //EXV setting
+      exvCurrentStepB.value =
+          int.tryParse(jsonMap['exvCstepB']?.toString() ?? '') ?? 0;
+      exvMaxStepB.value =
+          int.tryParse(jsonMap['exvMstepB']?.toString() ?? '') ?? 0;
+      exvStepDelayB.value =
+          int.tryParse(jsonMap['exvStepDB']?.toString() ?? '') ?? 0;
+      String sucpressuretype = jsonMap['sucPressureTypeB']?.toString() ?? "0";
+      String sucpressurerange = jsonMap['sucPressureRangeB']?.toString() ?? "0";
+      int sucpressureunit = jsonMap['sucPressureUnitB'] ?? false;
+      int sucoffsettB =
+          int.tryParse(jsonMap['sucoffsetB']?.toString() ?? "0") ?? 0;
+
+      String dispressuretype = jsonMap['disPressureTypeB']?.toString() ?? "0";
+      String dispressurerange = jsonMap['disPressureRangeB']?.toString() ?? "0";
+      int dispressureunit = jsonMap['sucPressureUnitB'] ?? false;
+      int disOffsetB =
+          int.tryParse(jsonMap['disoffsetB']?.toString() ?? "0") ?? 0;
+      //Exv
+      double proportionalB =
+          double.tryParse(jsonMap['PidPB'].toString()) ?? 0.0;
+      double derivativeB = double.tryParse(jsonMap['PidDB'].toString()) ?? 0.0;
+      double integralB = double.tryParse(jsonMap['PidIB'].toString()) ?? 0.0;
+      int exvPosiB = jsonMap['modeB'] ?? 0;
+      //setpoints B
+      int suctionPressureB = int.tryParse(jsonMap['SucPsiSpB'].toString()) ?? 0;
+      int dischargePressureB =
+          int.tryParse(jsonMap['DisPsiSpB'].toString()) ?? 0;
+      int suctionTempB = int.tryParse(jsonMap['SucTempSpB'].toString()) ?? 0;
+      int dischargeTempB = int.tryParse(jsonMap['DisTempSpB'].toString()) ?? 0;
+      int lowSprayB = int.tryParse(jsonMap['SprayTempSpB'].toString()) ?? 0;
+      int compAmpB = int.tryParse(jsonMap['compAmpspB'].toString()) ?? 0;
+      int superheatB = int.tryParse(jsonMap['superheatspB'].toString()) ?? 0;
+      dmCelciusToFahrenheit.value =
+          int.tryParse(jsonMap['fan1']?.toString() ?? '') ?? 0;
+
+      dmSuctionTempB.value = double.tryParse(jsonMap['SucTempB']) ?? 0.0;
+      dmSuctionPressureB.value =
+          int.tryParse(jsonMap['SucPsiB']?.toString() ?? '') ?? 0;
+      dmdischargeTempB.value =
+          double.tryParse(jsonMap['DisTempB']?.toString() ?? '') ?? 0.0;
+      dmdischargePressureB.value =
+          int.tryParse(jsonMap['DisPsiB']?.toString() ?? '') ?? 0;
+      dmSubCoolingB.value =
+          double.tryParse(jsonMap['subCoolingB']?.toString() ?? '') ?? 0.0;
+      dmSprayB.value =
+          double.tryParse(jsonMap['sprayB']?.toString() ?? '') ?? 0.0;
+      dmExvB.value = double.tryParse(jsonMap['exvB']?.toString() ?? '') ?? 0.0;
+      dmShtB.value = double.tryParse(jsonMap['shtB']?.toString() ?? '') ?? 0.0;
+      dmRunHoursB.value =
+          int.tryParse(jsonMap['runHoursB']?.toString() ?? '') ?? 0;
+      dmStartB.value =
+          int.tryParse(jsonMap['startdelayB']?.toString() ?? '') ?? 0;
+      dmStepSizeB.value =
+          double.tryParse(jsonMap['stepsizeB']?.toString() ?? '') ?? 0.0;
+      fan1and2HighBLimit.value =
+          int.tryParse(jsonMap['fan1HB']?.toString() ?? '') ?? 0;
+      fan3and4HighBLimit.value =
+          int.tryParse(jsonMap['fan3HB']?.toString() ?? '') ?? 0;
+      fan5and6HighBLimit.value =
+          int.tryParse(jsonMap['fan5HB']?.toString() ?? '') ?? 0;
+      fan1and2LowBLimit.value =
+          int.tryParse(jsonMap['fan1LB']?.toString() ?? '') ?? 0;
+      fan3and4LowBLimit.value =
+          int.tryParse(jsonMap['fan3LB']?.toString() ?? '') ?? 0;
+      fan5and6LowBLimit.value =
+          int.tryParse(jsonMap['fan5LB']?.toString() ?? '') ?? 0;
+      vfdMinFrequencyB.value =
+          int.tryParse(jsonMap['vfdMinFreB']?.toString() ?? '') ?? 0;
+      vfdMaxFrequencyB.value =
+          int.tryParse(jsonMap['vfdMaxFreB']?.toString() ?? '') ?? 0;
+      selectedModeB.value =
+          int.tryParse(jsonMap['driveB']?.toString() ?? '') ?? 0;
+      vfdDelayB.value =
+          int.tryParse(jsonMap['vfdDelayB']?.toString() ?? '') ?? 0;
+      selectedEXVModeB.value =
+          int.tryParse(jsonMap['ExvselB']?.toString() ?? '') ?? 0;
+      minValueB.value = int.tryParse(jsonMap['minB']?.toString() ?? '') ?? 0;
+      maxValueB.value = int.tryParse(jsonMap['maxB']?.toString() ?? '') ?? 0;
+      gasB.value = int.tryParse(jsonMap['gasB']?.toString() ?? '') ?? 0;
