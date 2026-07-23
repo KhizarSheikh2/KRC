@@ -1,0 +1,22 @@
+AM4 DISPLAY - 1x4 MEMBRANE KEYPAD UPDATE
+========================================
+
+Only the AM4_DISPLAY firmware was changed. The AM4_HARDWARE_HOST firmware is
+unchanged.
+
+Keypad pins:
+- Row: GPIO27
+- Key 1 column: GPIO26
+- Key 2 column: GPIO25
+- Key 3 column: GPIO33
+- Key 4 column: GPIO32
+
+Key functions:
+- Key 1: Navigate left / previous page
+- Key 4: Navigate right / next page
+- Key 2: Navigate up through temperature rows
+- Key 3: Navigate down through temperature rows
+
+Touch swipe navigation remains active.
+No external Keypad library is required because the 1x4 matrix is scanned
+manually with ESP32 GPIO and INPUT_PULLUP.

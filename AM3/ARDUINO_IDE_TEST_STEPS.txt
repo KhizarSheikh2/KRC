@@ -1,0 +1,67 @@
+ARDUINO IDE FIRST TEST - EXACT ORDER
+====================================
+
+1. HARDWARE ESP32
+-----------------
+Upload AM3_HARDWARE_HOST/AM3_HARDWARE_HOST.ino.
+Board: DOIT ESP32 DEVKIT V1
+Serial Monitor: 115200 baud
+
+Expected messages:
+  [HOST AP] STARTED
+  [HOST AP] SSID: AM1-7AA010
+  [HOST AP] IP: 192.168.4.1
+  [DISPLAY LINK] TCP SERVER STARTED
+  [DISPLAY LINK] Address: 192.168.4.1:5050
+
+The hardware AP must be visible in a phone/laptop Wi-Fi list even when the
+router and MQTT are unavailable.
+
+2. DISPLAY ESP32
+----------------
+Upload AM3_DISPLAY/AM3_DISPLAY.ino.
+Board: DOIT ESP32 DEVKIT V1
+Serial Monitor: 115200 baud
+
+Expected messages:
+  [DISPLAY WIFI] CONNECTED TO HARDWARE AP
+  [DISPLAY WIFI] Local IP: 192.168.4.50
+  [DISPLAY TCP] CONNECTED; sending hello
+  [HARDWARE ACK] hello -> Display authenticated
+  [HARDWARE RX] {"v":1,"type":"state",...}
+
+3. HARDWARE SERIAL AFTER DISPLAY CONNECTS
+-----------------------------------------
+Expected messages:
+  [HOST AP] Connected station count: 1
+  [DISPLAY LINK] TCP client connected from 192.168.4.50
+  [DISPLAY RX] {"v":1,"type":"hello",...}
+  [DISPLAY LINK] Authenticated successfully
+  [DISPLAY TX #1] {"v":1,"type":"state",...}
+
+HOW TO IDENTIFY THE FAILURE
+---------------------------
+A. Hardware does not print [HOST AP] STARTED:
+   AP initialization/power/board problem.
+
+B. Hardware prints AP started, but station count stays 0:
+   Display is not joining Wi-Fi. Check display Serial status, SSID/password,
+   power, and verify the AP appears on a phone.
+
+C. Station count becomes 1, but no TCP client message:
+   Wi-Fi is working; TCP port 5050 is not connecting. Check that both projects
+   use 192.168.4.1 and port 5050.
+
+D. TCP connects, but authentication does not succeed:
+   The token differs between the two DisplayLinkConfig.h files.
+
+E. Authentication succeeds, but no [DISPLAY TX] JSON:
+   Hardware link send failure will now print its exact reason.
+
+F. Hardware prints [DISPLAY TX], but display prints no [HARDWARE RX]:
+   TCP receive/framing problem. Reset the display ESP32 and observe reconnect.
+
+POWER TEST
+----------
+For initial communication testing, power each ESP32 from a separate known-good
+USB cable/USB port. Do not power the TFT backlight from an unstable 3.3 V rail.

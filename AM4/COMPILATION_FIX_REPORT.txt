@@ -1,0 +1,20 @@
+AM4 HARDWARE COMPILATION FIX
+============================
+
+Error fixed:
+  cannot bind non-const lvalue reference of type 'int&' to an rvalue of type 'int'
+
+Cause:
+  MQTT.h declared update_values_from_json(String, int&), while offset1 through
+  offset6 are int16_t variables. Passing an int16_t to int& requires a temporary
+  conversion to int, and a non-const reference cannot bind to that temporary.
+
+Correction:
+  update_values_from_json is now a typed template that accepts the actual
+  variable type by reference, reads the JSON value as int, safely casts it back
+  to the destination type, and stores the same value in Preferences.
+
+Affected fields:
+  offset1, offset2, offset3, offset4, offset5, offset6
+
+Existing int fields continue using the same function without behavior changes.

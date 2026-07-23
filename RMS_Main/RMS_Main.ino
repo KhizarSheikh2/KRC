@@ -35,6 +35,11 @@ String device_topic_p = "/KRC/" + devicename;
 WiFiClientSecure espClient;
 PubSubClient mqtt_client(espClient);
 
+const char* ntpServer = "time.google.com";
+
+const long gmtOffset_sec = 18000;
+const int daylightOffset_sec = 0;
+
 // =====================================================
 // HMI STATIC AP - ALWAYS ON (192.168.4.1)
 // =====================================================
@@ -55,7 +60,6 @@ DallasTemperature sensors(&oneWire);
 #define zerocross  35
 DimmableLight light1(outputPin);
 DimmableLight light2(outputPin2);
-DimmableLight light3(outputPin3);
 const int syncPin = 35;
 
 AsyncWebServer server(80);
@@ -78,9 +82,10 @@ bool firstBoot = true;
 // HMI Bridge Variables
 volatile uint16_t light1sw=0, light2sw=0, tvsw=0, damperswitch=0, shuttersw=0, curtainsw=0;
 volatile uint16_t light1st=0, light2st=0, tvst=0, shst=0, curtainst=0;
-volatile uint16_t light1int=10, light2int=10, ;
+volatile uint16_t light1int=10, light2int=10;
 volatile uint16_t scfm[4]={0}, seasonsw=0, SP=22;
-volatile uint16_t temper=0, temp1=0;
+float temper = 0.0;
+float temp1 = 0.0;
 
 // WiFi Variables
 String ssid, pass;
@@ -107,6 +112,7 @@ void Access_Point();
 void setup_wifi_credentials();
 void loadAllStatesFromPreferences();
 void saveAllStatesToPreferences();
+void Extract_by_json(String incomingMessage);
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 
 // =====================================================
@@ -118,17 +124,17 @@ void setup() {
 
   firstBoot = true;  // BOOT FLAG
 
-  // 1. RS485 first (safe)
+  // RS485 first (safe)
   RS485Serial.begin(MODBUS_BAUD_RATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   Serial.println("✅ RS485 OK");
 
-  // 2. LOAD PREFERENCES FIRST
+  // LOAD PREFERENCES FIRST
   preferences.begin("rms-states", true);
   loadAllStatesFromPreferences();
   preferences.end();
   Serial.println("✅ States loaded from FLASH");
 
-  // 3. PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY
+  // PCA9554 - SET PINS TO SAVED STATES IMMEDIATELY
   Wire.begin();
   ioCon1.portMode(ALLOUTPUT);
   
@@ -143,32 +149,33 @@ void setup() {
   ioCon1.digitalWrite(7, dampersw_mqtt);    // Damper
   Serial.println("✅ PCA9554 RESTORED - NO RELAY JERK!");
 
-  // 4. Dimmers only
-  control_func();
-  Serial.println("✅ Boot dimmers done - RELAYS SILENT!");
-
-  // 5. Storage & Sensors
-  if (!SPIFFS.begin(true)) Serial.println("❌ SPIFFS Failed"); 
-  else Serial.println("✅ SPIFFS OK");
-
   DimmableLight::setSyncPin(syncPin);
   DimmableLight::begin();
   sensors.begin();
   Serial.println("✅ Dimmer/Sensors OK");
 
-  // 6. HMI AP ALWAYS FIRST - 192.168.4.1
+  // Dimmers only
+  control_func();
+  Serial.println("✅ Boot dimmers done - RELAYS SILENT!");
+
+  // Storage & Sensors
+  if (!SPIFFS.begin(true)) Serial.println("❌ SPIFFS Failed"); 
+  else Serial.println("✅ SPIFFS OK");
+
+  // HMI AP ALWAYS FIRST - 192.168.4.1
   macaddress = WiFi.macAddress();
   Serial.println("MAC: " + macaddress);
   Access_Point();
   
-  // 7. Try home WiFi AFTER HMI AP (AP stays running)
+  // Try home WiFi AFTER HMI AP (AP stays running)
   setup_wifi_credentials();
 
-  // 8. MQTT Setup
+  // MQTT Setup
+  mqtt_client.setBufferSize(1024);
   mqtt_client.setServer(mqtt_server, mqtt_port);
   mqtt_client.setCallback(mqttCallback);
-
-  // 9. Web Servers
+  
+  // Web Servers
   setupMobileAppServer();
   setupDwinHMIEndpoints();
   server.begin();
@@ -401,6 +408,7 @@ void control_func() {
     ioCon1.digitalWrite(4, tvsw); tvst = tvsw;  // Smart TV
     ioCon1.digitalWrite(5, shuttersw); shst = shuttersw;
     ioCon1.digitalWrite(6, curtainsw); curtainst = curtainsw;
+    ioCon1.digitalWrite(7, damperswitch);
     Serial.println("🔄 Relays updated");
   } else {
     Serial.println("🔒 Boot: Relays skipped (already perfect)");
@@ -424,9 +432,11 @@ void control_func() {
 // =====================================================
 void gettemperature() {
   sensors.requestTemperatures();
-  temper = sensors.getTempCByIndex(0);
-  if (temper != DEVICE_DISCONNECTED_C) {
-    temp1 = (uint16_t)temper;
+  float t = sensors.getTempCByIndex(0);
+
+  if (t != DEVICE_DISCONNECTED_C && t > -50 && t < 125) {
+    temp1 = t;
+    temper = t;
   }
 }
 
@@ -511,7 +521,8 @@ bool connect_to_wifi() {
   if (WiFi.status() == WL_CONNECTED) {
     myIP = WiFi.localIP().toString();
     Serial.println("✅ WiFi Connected: " + myIP);
-    configTime(0, 0, "pool.ntp.org");
+    // configTime(0, 0, "pool.ntp.org");
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     return true;
   } else {
     Serial.println("❌ WiFi Failed - HMI AP continues");
@@ -696,9 +707,9 @@ void setupDwinHMIEndpoints() {
     dmptempsp         = SP;
 
     // Save Preferences
-    preferences.begin("rms-states", false);
+    // preferences.begin("rms-states", false);
     saveAllStatesToPreferences();
-    preferences.end();
+    // preferences.end();
 
     // Apply Hardware
     control_func();

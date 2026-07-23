@@ -1,0 +1,67 @@
+AM3 TWO-ESP32 PROJECT — COMPLETE RECHECK
+Date: 2026-07-20
+
+ARCHITECTURE
+============
+Display ESP32 <-> Hardware Host ESP32 <-> MQTT Broker <-> Mobile App
+
+HARDWARE HOST NETWORK
+=====================
+- Starts the display Access Point before attempting router Wi-Fi.
+- Operates continuously in WIFI_AP_STA mode.
+- AP SSID: AM1-7AA010
+- AP password: bitahomes
+- AP IP: 192.168.4.1
+- Display TCP port: 5050
+- Router/STA and MQTT operate independently of the display AP.
+- AP health is checked every 5 seconds.
+
+DISPLAY NETWORK
+===============
+- Uses WIFI_STA only.
+- SSID/password are hardcoded in AM3_DISPLAY/DisplayLinkConfig.h.
+- Connects only to 192.168.4.1:5050.
+- Reconnects Wi-Fi and TCP automatically.
+- Sends authentication hello, heartbeat and optional start/stop/reset commands.
+
+CORRECTIONS FROM THIS RECHECK
+=============================
+1. MQTT_MAX_PACKET_SIZE set to 2048 before PubSubClient include.
+   The AM3 telemetry/config payload can exceed the library's normal small
+   default packet buffer; without this, publish() can fail even while MQTT is
+   connected.
+2. Temperature-configuration JSON document and output buffer increased to 2048.
+3. MQTT publish return values are checked and failures are reported on Serial.
+4. PCF8574 read failure now returns 0xFF (idle HIGH) instead of 0x00.
+   This prevents a missing/I2C-failed input expander from appearing as false
+   LOW start/stop commands.
+5. MQTT retry log corrected from "10 milliseconds" to "10 seconds".
+
+VERIFICATION RESULTS
+====================
+PASS - GCC C++17 syntax check using Arduino-compatible API stubs.
+PASS - Clang C++17 syntax check using Arduino-compatible API stubs.
+PASS - Zero warnings with -Wall -Wextra -Wpedantic.
+PASS - Exactly one setup() and one loop() in each project.
+PASS - Hardware AP initialization occurs before router/STA connection.
+PASS - Hardware contains AP+STA, MQTT, sensors, PCF8574 and machine control.
+PASS - Hardware contains no TFT/touch libraries.
+PASS - Display contains TFT/touch and the hardware-link client only.
+PASS - Display contains no MQTT, AWS, OneWire or DallasTemperature libraries.
+PASS - SSID, password, token and TCP port match in both projects.
+PASS - Hardware state packet fits the display RX buffer.
+PASS - Display command packet fits the hardware RX buffer.
+PASS - All four refrigerant pressure tables contain 151 entries (0..150 F).
+PASS - Five-sensor path includes supply, suction, return, discharge and oil.
+PASS - No BECA, Modbus or RS485 symbols remain.
+PASS - AWS root CA/client certificate/private key parse successfully.
+PASS - AWS client certificate and private-key public modulus match.
+PASS - ZIP integrity check passed.
+
+IMPORTANT LIMITATION
+====================
+The source is structurally and syntactically verified, but final proof requires
+compiling in the user's Arduino IDE with the exact installed ESP32 core and
+library versions, then testing on both physical ESP32 boards. Software checks
+cannot verify wiring, power quality, TFT/touch calibration, PCF8574 electrical
+states, DS18B20 addresses, router channel behavior or live AWS permissions.

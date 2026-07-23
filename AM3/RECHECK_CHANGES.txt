@@ -1,0 +1,15 @@
+Files changed during the final recheck:
+
+AM3_HARDWARE_HOST/AM3_HARDWARE_HOST.ino
+- Added MQTT_MAX_PACKET_SIZE 2048 before PubSubClient.h.
+
+AM3_HARDWARE_HOST/MQTT.h
+- Increased temperature configuration JSON capacity/buffer to 2048.
+- Added MQTT publish failure reporting.
+- Corrected MQTT retry log wording.
+
+AM3_HARDWARE_HOST/IO.h
+- Changed failed PCF8574 reads to fail-safe 0xFF instead of 0x00.
+
+The display UI, pin mapping, AP credentials, sensors, alarm setpoints,
+compressor logic, MQTT topics and mobile-app command names were not changed.

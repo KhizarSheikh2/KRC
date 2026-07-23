@@ -1,0 +1,27 @@
+HARDWARE HOST LINK NOTES
+========================
+
+The hardware ESP32 permanently operates as:
+- SoftAP host for the display ESP32
+- Station client for router/internet/MQTT
+
+AP credentials:
+SSID: AM4-AAA001
+Password: bitahomes
+IP: 192.168.4.1
+TCP port: 5050
+
+The AP starts before the station connection attempt and is checked every 5 s.
+If AP recovery is required, the TCP listener is started again automatically.
+
+The display link is a non-blocking, newline-delimited JSON TCP link.
+- State transmission: every 500 ms
+- Display heartbeat: every 2 s
+- Silent-client timeout: 6 s
+
+Hardware sensing/control and MQTT do not depend on the display connection.
+MQTT reconnect attempts use a 10-second backoff.
+
+HTTP Wi-Fi configuration and display data use separate ports:
+- HTTP configuration: 80
+- Display TCP data: 5050

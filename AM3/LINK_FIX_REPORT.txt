@@ -1,0 +1,32 @@
+AM3 LINK FIX REPORT
+===================
+
+Problems corrected:
+1. Hardware TCP server previously started after a blocking router connection
+   attempt. It now starts immediately after the permanent AP.
+2. Router Wi-Fi connection is now non-blocking.
+3. MQTT TLS/socket timeouts are bounded to three seconds.
+4. Wi-Fi sleep is disabled on both ESP32s for a stable continuous TCP link.
+5. Display uses static IP 192.168.4.50, removing DHCP as a failure point.
+6. Hardware sends the first state JSON immediately after display authentication.
+7. Hardware/client timeout increased to tolerate short MQTT operations.
+8. TCP server is fully stopped and rebound if the AP is recovered.
+9. Both sides now print Wi-Fi, TCP, authentication, JSON TX, JSON RX and timeout
+   diagnostics at 115200 baud.
+10. State and protocol buffers were checked against a 419-byte worst-case sample.
+
+Verification performed:
+- 41 architecture/protocol consistency checks passed.
+- SSID/password/token/port match.
+- AP IP, display static IP and TCP host are in the same subnet.
+- State field producer/consumer names match.
+- Exactly one setup() and loop() in each project.
+- Balanced braces, parentheses and brackets in all source files.
+- Hardware AP+STA and both TCP/JSON modules passed C++17 syntax checks with Arduino-compatible mocks.
+- A heartbeat return-type error found by the syntax pass was corrected before packaging.
+- No TFT code in hardware project.
+- No MQTT or hardware sensor/control code in display project.
+- No BECA/Modbus/RS485 code.
+
+Physical Wi-Fi, wiring, power and TFT behavior must still be tested on the two
+actual ESP32 boards.

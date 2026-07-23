@@ -1,0 +1,47 @@
+AM3 DISPLAY ESP32 - ILI9341 / XPT2046
+======================================
+
+WIRING
+------
+TFT SCK      -> GPIO18
+TFT MISO     -> GPIO19
+TFT MOSI     -> GPIO23
+TFT CS       -> GPIO15
+TFT DC       -> GPIO2
+TFT RST      -> GPIO4
+TOUCH CS     -> GPIO21
+VCC          -> According to module specification
+GND          -> GND
+
+HARDWARE HOST CONNECTION
+------------------------
+SSID: AM1-7AA010
+Password: bitahomes
+Hardware IP: 192.168.4.1
+Display static IP: 192.168.4.50
+TCP port: 5050
+
+The values are hardcoded in DisplayLinkConfig.h.
+
+REQUIRED ARDUINO LIBRARIES
+--------------------------
+- Adafruit GFX Library
+- Adafruit ILI9341
+- XPT2046_Touchscreen by Paul Stoffregen
+- ArduinoJson 6.x
+
+SERIAL MONITOR
+--------------
+Use 115200 baud. AM3_LINK_DEBUG is enabled in DisplayLinkConfig.h.
+
+1x4 MEMBRANE KEYPAD
+-------------------
+ROW 1        -> GPIO27
+COLUMN 1     -> GPIO26  (Key 1: Left / previous page)
+COLUMN 2     -> GPIO25  (Key 2: Up)
+COLUMN 3     -> GPIO33  (Key 3: Down)
+COLUMN 4     -> GPIO32  (Key 4: Right / next page)
+
+The keypad is scanned directly by the firmware using INPUT_PULLUP, so no
+additional Keypad library is required. Touch swipe navigation remains enabled.
+On the Temperatures page, Key 2 and Key 3 move the highlighted temperature row.
