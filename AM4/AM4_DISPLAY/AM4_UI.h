@@ -1,21 +1,10 @@
 #pragma once
 
 /*
-  AM4 2.8-inch TFT UI integration
-
-  This file contains only the display/touch presentation layer taken from
-  the sample AM4_Touch_Pressure_Temperature_UI project.
-
-  It does NOT create another OneWire bus, read separate sensors, connect to
-  Wi-Fi, calculate pressures, control outputs, scan alarms, or change MQTT.
-  It only displays the existing AM4 variables maintained by the base code.
+  AM4 2.8-inch TFT UI 
 
   Display: ILI9341 240x320 SPI TFT, landscape 320x240
   Touch:   XPT2046-compatible controller
-
-  This display has its own ESP32, so it uses the sample display wiring.
-  GPIO21 is available here because the PCF8574 remains on the separate
-  hardware-host ESP32.
 */
 
 #include <SPI.h>
@@ -23,6 +12,8 @@
 #include <math.h>
 #include <Adafruit_GFX.h>
 #include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
 #include "AM4_UI_Types.h"
@@ -276,7 +267,7 @@ void am4DrawNavigationFooter() {
   am4Tft.fillCircle(167, 234, 3, page1Color);
 
   // A right swipe always toggles between Dashboard and Temperatures.
-  am4DrawLeftText("KEY 4 / SWIPE RIGHT", 190, 231, 1, AM4_COLOR_MUTED, AM4_COLOR_BACKGROUND);
+  // am4DrawLeftText("KEY 4 / SWIPE RIGHT", 190, 231, 1, AM4_COLOR_MUTED, AM4_COLOR_BACKGROUND);
   am4Tft.drawLine(306, 231, 311, 234, AM4_COLOR_GREEN);
   am4Tft.drawLine(311, 234, 306, 237, AM4_COLOR_GREEN);
 }
@@ -584,11 +575,9 @@ void am4UpdateTimeDateCard(const struct tm& timeInfo) {
   String dayText(dayTextBuffer);
   dayText.toUpperCase();
 
-  am4DrawCenteredText(String(timeText), am4MainCards[0].x + am4MainCards[0].width / 2,
-                      am4MainCards[0].y + 34, 2, AM4_COLOR_BLUE, AM4_COLOR_CARD);
-  am4DrawCenteredText(String(dateText) + "  " + dayText,
-                      am4MainCards[0].x + am4MainCards[0].width / 2,
-                      am4MainCards[0].y + 59, 1, AM4_COLOR_TEXT, AM4_COLOR_CARD);
+  am4DrawCenteredText(String(timeText), am4MainCards[0].x + am4MainCards[0].width / 2,am4MainCards[0].y + 34, 2, AM4_COLOR_BLUE, AM4_COLOR_CARD);
+  
+  am4DrawCenteredText(String(dateText) + "  " + dayText,am4MainCards[0].x + am4MainCards[0].width / 2,am4MainCards[0].y + 59, 1, AM4_COLOR_TEXT, AM4_COLOR_CARD);
 }
 
 void am4UpdateSystemStatusCard() {
@@ -601,13 +590,11 @@ void am4UpdateSystemStatusCard() {
   const char* statusText = running ? "RUNNING" : "STOPPED";
   const uint16_t statusColor = running ? AM4_COLOR_SUCCESS : AM4_COLOR_ERROR;
 
-  am4DrawCenteredText(statusText,
-                      am4MainCards[1].x + am4MainCards[1].width / 2,
-                      am4MainCards[1].y + 40, 3, statusColor, AM4_COLOR_CARD);
-  am4DrawCenteredText("COMPRESSOR",
-                      am4MainCards[1].x + am4MainCards[1].width / 2,
-                      am4MainCards[1].y + am4MainCards[1].height - 13,
-                      1, AM4_COLOR_MUTED, AM4_COLOR_CARD);
+  am4DrawCenteredText(statusText,am4MainCards[1].x + am4MainCards[1].width / 2,
+  
+  am4MainCards[1].y + 40, 3, statusColor, AM4_COLOR_CARD);
+  
+  am4DrawCenteredText("COMPRESSOR",am4MainCards[1].x + am4MainCards[1].width / 2,am4MainCards[1].y + am4MainCards[1].height - 13,1, AM4_COLOR_MUTED, AM4_COLOR_CARD);
 }
 
 void am4DisplayTimeError() {

@@ -39,3 +39,25 @@ Damper without BECA NANO
 16 Buzzer
 
 */
+
+
+//For AP-DP
+/*
+Potentiometer 34
+SERVO 2
+reset 17
+dc 2
+cs 15
+sdi(mosi) 23
+sck 18
+*/
+
+
+
+
+
+
+
+
+
+
