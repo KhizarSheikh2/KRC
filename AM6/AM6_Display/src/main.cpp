@@ -19,6 +19,7 @@ uint32_t lastLvglTickMs = 0;
 uint32_t lastLvglHandlerMs = 0;
 uint32_t backlightFadeStartedMs = 0;
 uint8_t lastBacklightLevel = 0;
+bool firstFrameReady = false;
 
 void displayFlush(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* colorMap) 
 {
@@ -29,6 +30,12 @@ void displayFlush(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* colorM
     tft.setAddrWindow(area->x1, area->y1, width, height);
     tft.pushColors(reinterpret_cast<uint16_t*>(&colorMap->full), width * height, true);
     tft.endWrite();
+
+    if (!firstFrameReady) {
+        firstFrameReady = true;
+        backlightFadeStartedMs = millis();
+        Serial.println("[display] First LVGL frame ready; enabling backlight fade.");
+    }
 
     lv_disp_flush_ready(disp);
 }
@@ -92,6 +99,7 @@ void initBacklight() {
 }
 
 void serviceBacklight() {
+    if (!firstFrameReady) return;
     if (lastBacklightLevel >= AM6_BACKLIGHT_LEVEL) return;
 
     const uint32_t elapsed = millis() - backlightFadeStartedMs;
@@ -162,7 +170,9 @@ void setup() {
     tft.setRotation(AM6_DISPLAY_ROTATION);
     tft.invertDisplay(AM6_TFT_INVERT != 0);
     delay(20);
-    tft.fillScreen(TFT_WHITE);
+    // Keep the physical framebuffer black while the backlight is off.
+    // The panel inversion command is handled by the controller; RGB data is not software-complemented.
+    tft.fillScreen(TFT_BLACK);
 
     const bool touchOk = touch.begin();
     Serial.println(touchOk ? "Ready" : "Not detected");

@@ -21,9 +21,9 @@ The established dashboard layout is retained:
 - Low / Med / High fan speed on the lower right
 - Link-state chip in the header
 
-The theme is a light industrial palette: off-white/light gray background, white cards, navy header, blue/cyan control accents, green Power ON, blue Cool, and orange Heat.
+The theme is a dark industrial palette matching the supplied reference: black/navy background, cyan/blue borders, white text, blue Cool state, green Heat/fan state, and compact controls sized for the real 320x240 panel.
 
-The latest physical-panel photo confirms this ST7789 revision must run with display inversion **OFF** for the intended light palette. The project therefore defines `TFT_INVERSION_OFF` and calls `tft.invertDisplay(false)` at runtime. With inversion ON, the light gray/white palette becomes dark and cyan/blue accents are complemented toward orange/brown.
+The real hardware photo confirmed this panel must use ST7789 inversion OFF. Inversion ON complements black to white, cyan to orange/red, and green to purple. The backlight remains off until the first LVGL frame is flushed to avoid a startup flash.
 
 ## Wireless link
 

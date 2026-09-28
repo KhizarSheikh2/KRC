@@ -18,10 +18,10 @@
 #define AM6_BACKLIGHT_PWM_BITS    8
 #define AM6_BACKLIGHT_LEVEL       235
 
-// Physical AM6 panel calibration from the supplied photos.
-// IMPORTANT: this specific panel shows the intended light palette only when
-// ST7789 display inversion is OFF. With inversion ON, light colors become dark
-// and cyan/blue accents are complemented toward orange/brown.
+// Physical AM6 panel calibration from the real hardware photo.
+// This JC2432W328 panel displays correct black/cyan/green colors with
+// ST7789 inversion OFF. Inversion ON complements the whole UI (black->white,
+// cyan->orange/red, green->purple).
 #define AM6_TFT_INVERT            0
 
 // LVGL partial render buffer: 320 x 20 x 2 bytes = 12.8 KB.
