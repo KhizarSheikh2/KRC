@@ -45,9 +45,12 @@ void printPeriodicStatus()
   Serial.print(" R3="); Serial.print(R3_State ? 1 : 0);
   Serial.print(" R4="); Serial.println(R4_State ? 1 : 0);
 
-  const uint8_t statusCode = currentOutdoorStatusCode();
-  Serial.print("[STATUS] statusout="); Serial.print(statusCode);
-  Serial.print(" ("); Serial.print(outdoorStatusText(statusCode)); Serial.println(")");
+  const uint8_t statusCodeA = currentOutdoorStatusCodeA();
+  const uint8_t statusCodeB = currentOutdoorStatusCodeB();
+  Serial.print("[STATUS] statusout(A)="); Serial.print(statusCodeA);
+  Serial.print(" ("); Serial.print(outdoorStatusText(statusCodeA)); Serial.print(")");
+  Serial.print(" | statusoutB(B)="); Serial.print(statusCodeB);
+  Serial.print(" ("); Serial.print(outdoorStatusText(statusCodeB)); Serial.println(")");
 
   Serial.print("[STATUS] Temps: ");
   for (uint8_t i = 0; i < TEMP_SENSOR_COUNT; i++)

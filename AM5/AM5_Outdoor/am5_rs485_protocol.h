@@ -4,13 +4,13 @@
 #include <Arduino.h>
 
 // =====================================================
-// AM5 Indoor <-> Outdoor RS485 protocol v2
+// AM5 Indoor <-> Outdoor RS485 protocol v3
 // This file MUST remain byte-for-byte identical in both projects.
 // Frame: AA 55 DEST SRC TYPE LEN PAYLOAD CRC_LO CRC_HI
 // CRC16-CCITT: poly 0x1021, init 0xFFFF
 // =====================================================
 
-static constexpr uint8_t AM5_RS485_PROTOCOL_VERSION = 2;
+static constexpr uint8_t AM5_RS485_PROTOCOL_VERSION = 3;
 
 // Message types.
 static constexpr uint8_t RS485_MSG_OUTDOOR_STATUS_REQUEST  = 0x30;
@@ -26,21 +26,24 @@ static constexpr uint8_t AM5_RS485_STATUS_REQ_VERSION = 0;
 static constexpr uint8_t AM5_RS485_STATUS_REQ_SYSTEM_POWER = 1;
 static constexpr uint8_t AM5_RS485_STATUS_REQ_OUTDOOR_ENABLE = 2;
 
-// 0xB0 Outdoor -> Indoor status response (45 bytes exactly).
-static constexpr uint8_t AM5_RS485_STATUS_RESPONSE_LEN = 45;
+// 0xB0 Outdoor -> Indoor status response (46 bytes exactly).
+// statusout  = Circuit A (SW1..SW4 -> R1/R3)
+// statusoutB = Circuit B (SW5..SW8 -> R2/R4)
+static constexpr uint8_t AM5_RS485_STATUS_RESPONSE_LEN = 46;
 static constexpr uint8_t AM5_RS485_STATUS_VERSION = 0;
 static constexpr uint8_t AM5_RS485_STATUS_SYSTEM_POWER = 1;
 static constexpr uint8_t AM5_RS485_STATUS_OUTDOOR_ENABLE = 2;
 static constexpr uint8_t AM5_RS485_STATUS_EFFECTIVE_POWER = 3;
-static constexpr uint8_t AM5_RS485_STATUS_CODE = 4;
-static constexpr uint8_t AM5_RS485_STATUS_ROLE_VALID_MASK = 5;
-static constexpr uint8_t AM5_RS485_STATUS_PHYSICAL_VALID_MASK = 6;
-static constexpr uint8_t AM5_RS485_STATUS_ROLE_TEMP_BASE = 7;      // 6 x int16, 0.1 C
-static constexpr uint8_t AM5_RS485_STATUS_PHYSICAL_TEMP_BASE = 19; // 6 x int16, 0.1 C
-static constexpr uint8_t AM5_RS485_STATUS_RELAY_BASE = 31;         // R1..R4
-static constexpr uint8_t AM5_RS485_STATUS_SWITCH_PCF_HEALTHY = 35;
-static constexpr uint8_t AM5_RS485_STATUS_RELAY_PCA_HEALTHY = 36;
-static constexpr uint8_t AM5_RS485_STATUS_SWITCH_BASE = 37;        // SW1..SW8
+static constexpr uint8_t AM5_RS485_STATUS_CODE_A = 4;
+static constexpr uint8_t AM5_RS485_STATUS_CODE_B = 5;
+static constexpr uint8_t AM5_RS485_STATUS_ROLE_VALID_MASK = 6;
+static constexpr uint8_t AM5_RS485_STATUS_PHYSICAL_VALID_MASK = 7;
+static constexpr uint8_t AM5_RS485_STATUS_ROLE_TEMP_BASE = 8;      // 6 x int16, 0.1 C
+static constexpr uint8_t AM5_RS485_STATUS_PHYSICAL_TEMP_BASE = 20; // 6 x int16, 0.1 C
+static constexpr uint8_t AM5_RS485_STATUS_RELAY_BASE = 32;         // R1..R4
+static constexpr uint8_t AM5_RS485_STATUS_SWITCH_PCF_HEALTHY = 36;
+static constexpr uint8_t AM5_RS485_STATUS_RELAY_PCA_HEALTHY = 37;
+static constexpr uint8_t AM5_RS485_STATUS_SWITCH_BASE = 38;        // SW1..SW8
 
 // 0x31 Indoor -> Outdoor sensor config set.
 static constexpr uint8_t AM5_RS485_CONFIG_SET_LEN = 12;
@@ -65,6 +68,8 @@ static constexpr uint8_t AM5_RS485_CONFIG_RECORD_ROLE = 8;
 static constexpr uint8_t AM5_RS485_CONFIG_RECORD_OFFSET_BASE = 9;  // int16, 0.01 C
 static constexpr uint8_t AM5_RS485_CONFIG_RECORD_TEMP_BASE = 11;   // int16, 0.1 C
 
+static_assert(AM5_RS485_STATUS_CODE_B + 1 == AM5_RS485_STATUS_ROLE_VALID_MASK,
+              "AM5 RS485 dual-status layout mismatch");
 static_assert(AM5_RS485_STATUS_ROLE_TEMP_BASE + 6 * 2 == AM5_RS485_STATUS_PHYSICAL_TEMP_BASE,
               "AM5 RS485 role temperature layout mismatch");
 static_assert(AM5_RS485_STATUS_PHYSICAL_TEMP_BASE + 6 * 2 == AM5_RS485_STATUS_RELAY_BASE,

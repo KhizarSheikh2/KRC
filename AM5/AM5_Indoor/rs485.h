@@ -146,7 +146,7 @@ inline void rs485PutInt16LE(uint8_t* buffer, uint8_t index, int16_t value) {
 
 // =====================================================
 // OUTDOOR STATUS + AUTHORITATIVE POWER SYNCHRONIZATION
-// Protocol v2 status request:
+// Protocol v3 status request:
 // [0] version, [1] system_power, [2] outdoorsw
 // =====================================================
 inline void rs485BeginOutdoorStatusTransaction() {
@@ -167,20 +167,21 @@ inline void rs485BeginOutdoorStatusTransaction() {
 }
 
 inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
-  // B0 payload length 45 (protocol v2):
+  // B0 payload length 46 (protocol v3):
   // [0]      version
   // [1]      authoritative system_power echo
   // [2]      outdoorsw echo
   // [3]      effective Outdoor enable = system_power && outdoorsw
-  // [4]      statusout (0..5)
-  // [5]      valid mask for configured role temperatures 1..6
-  // [6]      valid mask for physical Outdoor temperatures 1..6
-  // [7..18]  six configured role temperatures, int16 x0.1 C
-  // [19..30] six physical calibrated temperatures, int16 x0.1 C
-  // [31..34] R1..R4
-  // [35]     switch PCF healthy
-  // [36]     relay PCF healthy
-  // [37..44] logical SW1..SW8 states
+  // [4]      statusout  = Circuit A, SW1..SW4 -> R1/R3
+  // [5]      statusoutB = Circuit B, SW5..SW8 -> R2/R4
+  // [6]      valid mask for configured role temperatures 1..6
+  // [7]      valid mask for physical Outdoor temperatures 1..6
+  // [8..19]  six configured role temperatures, int16 x0.1 C
+  // [20..31] six physical calibrated temperatures, int16 x0.1 C
+  // [32..35] R1..R4
+  // [36]     switch PCF healthy
+  // [37]     relay PCA healthy
+  // [38..45] logical SW1..SW8 states
   if (rs485MasterTransaction != RS485_TXN_WAIT_OUTDOOR_STATUS) return;
   rs485MasterTransaction = RS485_TXN_IDLE;
 
@@ -194,6 +195,7 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   // protection input/status change can be published immediately over MQTT.
   const bool previousOutdoorOnline = rs485_outdoor_online;
   const int previousOutdoorStatusCode = outdoorStatusCode;
+  const int previousOutdoorStatusCodeB = outdoorStatusCodeB;
   const bool previousOutdoorR1 = outdoorR1;
   const bool previousOutdoorR2 = outdoorR2;
   const bool previousOutdoorR3 = outdoorR3;
@@ -207,9 +209,12 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   outdoorPowerEcho = (frame.payload[AM5_RS485_STATUS_SYSTEM_POWER] == 1) ? 1 : 0;
   outdoorEnableEcho = (frame.payload[AM5_RS485_STATUS_OUTDOOR_ENABLE] == 1) ? 1 : 0;
   outdoorEffectivePower = (frame.payload[AM5_RS485_STATUS_EFFECTIVE_POWER] == 1) ? 1 : 0;
-  outdoorStatusCode = (frame.payload[AM5_RS485_STATUS_CODE] <= static_cast<uint8_t>(OUT_STATUS_OVERLOAD_TRIPPED))
-                        ? static_cast<int>(frame.payload[AM5_RS485_STATUS_CODE])
+  outdoorStatusCode = (frame.payload[AM5_RS485_STATUS_CODE_A] <= static_cast<uint8_t>(OUT_STATUS_OVERLOAD_TRIPPED))
+                        ? static_cast<int>(frame.payload[AM5_RS485_STATUS_CODE_A])
                         : static_cast<int>(OUT_STATUS_STOPPED);
+  outdoorStatusCodeB = (frame.payload[AM5_RS485_STATUS_CODE_B] <= static_cast<uint8_t>(OUT_STATUS_OVERLOAD_TRIPPED))
+                         ? static_cast<int>(frame.payload[AM5_RS485_STATUS_CODE_B])
+                         : static_cast<int>(OUT_STATUS_STOPPED);
 
   const uint8_t roleValidMask = frame.payload[AM5_RS485_STATUS_ROLE_VALID_MASK];
   const uint8_t physicalValidMask = frame.payload[AM5_RS485_STATUS_PHYSICAL_VALID_MASK];
@@ -247,6 +252,7 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
 
   bool outdoorStateChanged = !previousOutdoorOnline ||
                              previousOutdoorStatusCode != outdoorStatusCode ||
+                             previousOutdoorStatusCodeB != outdoorStatusCodeB ||
                              previousOutdoorR1 != outdoorR1 ||
                              previousOutdoorR2 != outdoorR2 ||
                              previousOutdoorR3 != outdoorR3 ||
@@ -260,7 +266,9 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   if (outdoorStateChanged) {
     mqtt_publish_requested = true;
     Serial.print("[RS485] Outdoor state changed -> MQTT republish requested | statusout=");
-    Serial.println(outdoorStatusCode);
+    Serial.print(outdoorStatusCode);
+    Serial.print(" statusoutB=");
+    Serial.println(outdoorStatusCodeB);
   }
 
   // Outdoor may have rebooted or missed a master-state change.

@@ -1,76 +1,55 @@
-AM5 Indoor <-> Outdoor RS485 protocol v2
-=========================================
+AM5 Indoor <-> Outdoor RS485 protocol v3
+==========================================
 
-Physical/link layer
--------------------
-- Indoor master address: 0x01
-- Outdoor slave address: 0x02
-- Display is NOT connected to this RS485 bus.
-- 19200 baud, 8N1, 2-wire half duplex
-- Frame: AA 55 DEST SRC TYPE LEN PAYLOAD... CRC_LO CRC_HI
-- CRC16-CCITT: polynomial 0x1021, initial value 0xFFFF
-- Shared byte layout is defined in am5_rs485_protocol.h. Keep that file identical
-  in the Indoor and Outdoor projects.
+Frame:
+AA 55 DEST SRC TYPE LEN PAYLOAD CRC_LO CRC_HI
+CRC16-CCITT, polynomial 0x1021, initial value 0xFFFF.
 
-0x30 Indoor -> Outdoor status request (LEN=3)
-------------------------------------------------
-[0] protocol version = 2
-[1] system_power      (0 OFF, 1 ON)
-[2] outdoorsw         (0 disabled, 1 enabled)
+0x30 Indoor -> Outdoor status/power request (LEN=3)
+[0] protocol version = 3
+[1] system_power (0/1)
+[2] outdoorsw (0/1)
 
-0xB0 Outdoor -> Indoor status response (LEN=45)
--------------------------------------------------
-[0]      protocol version = 2
+0xB0 Outdoor -> Indoor status response (LEN=46)
+[0]      protocol version = 3
 [1]      system_power echo
 [2]      outdoorsw echo
-[3]      effective Outdoor enable = system_power && outdoorsw
-[4]      statusout: 0 stopped, 1 running, 2 high PSI, 3 low PSI,
-         4 power/communication hardware fault, 5 overload/tripped
-[5]      configured-role temperature valid mask, bits 0..5
-[6]      physical-temperature valid mask, bits 0..5
-[7..18]  role temperatures 1..6, six little-endian int16 values x0.1 C
-[19..30] physical calibrated temperatures 1..6, six little-endian int16 x0.1 C
-[31..34] R1, R2, R3, R4 logical states (0 OFF, 1 ON)
-[35]     switch PCF8574 healthy (0/1)
-[36]     relay PCA9554 healthy (0/1)
-[37..44] SW1..SW8 logical active states (0/1), one byte per switch
+[3]      effective Outdoor power
+[4]      statusout  - Circuit A (SW1..SW4 -> R1/R3)
+[5]      statusoutB - Circuit B (SW5..SW8 -> R2/R4)
+[6]      role temperature valid mask
+[7]      physical temperature valid mask
+[8..19] 6 role temperatures, int16 x0.1 C
+[20..31] 6 physical temperatures, int16 x0.1 C
+[32..35] R1..R4 states
+[36]     switch PCF8574 healthy
+[37]     relay PCA9554 healthy/configured
+[38..45] SW1..SW8 logical healthy states
 
-0x31 Indoor -> Outdoor sensor configuration set (LEN=12)
----------------------------------------------------------
-[0]     protocol version = 2
-[1..8]  DS18B20 ROM address
-[9]     role 0..6 (0 = unassigned)
-[10..11] calibration offset, little-endian int16 x0.01 C
+Status values for BOTH statusout and statusoutB:
+0 = Stopped
+1 = Running
+2 = High PSI
+3 = Low PSI
+4 = Power Fault
+5 = Overload / Tripped
 
-0xB1 Outdoor -> Indoor configuration acknowledgement (LEN=2)
--------------------------------------------------------------
-[0] protocol version = 2
-[1] success (0/1)
+Circuit A / statusout:
+SW1 = outhipsiA
+SW2 = outlopsiA
+SW3 = outoverloadA
+SW4 = outpowerA
+R1 + R3 are Circuit A relays.
+Priority: High PSI -> Low PSI -> Power Fault -> Overload -> Running.
 
-0x32 Indoor -> Outdoor configuration snapshot request (LEN=1)
---------------------------------------------------------------
-[0] protocol version = 2
+Circuit B / statusoutB:
+SW5 = outhipsiB
+SW6 = outlopsiB
+SW7 = outoverloadB
+SW8 = outpowerB
+R2 + R4 are Circuit B relays.
+Priority: High PSI -> Low PSI -> Power Fault -> Overload -> Running.
 
-0xB2 Outdoor -> Indoor configuration snapshot
-------------------------------------------------
-Header:
-[0] protocol version = 2
-[1] detected sensor count, 0..6
-
-Each sensor record is 13 bytes:
-[0..7]  DS18B20 ROM address
-[8]     role 0..6
-[9..10] calibration offset, little-endian int16 x0.01 C
-[11..12] current raw temperature, little-endian int16 x0.1 C
-
-Maximum B2 payload for six sensors = 2 + (6 x 13) = 80 bytes.
-Both nodes use RS485_MAX_PAYLOAD=96.
-
-statusout protection mapping:
-  SW1 or SW5 = 0 -> 2 High PSI
-  SW2 or SW6 = 0 -> 3 Low PSI
-  SW4 or SW8 = 0 -> 4 Power Fault
-  SW3 or SW7 = 0 -> 5 Overload/Tripped
-  all healthy       -> 1 Running
-  system/outdoor OFF-> 0 Stopped
-Fault priority: High PSI > Low PSI > Power Fault > Overload/Tripped > Running
+System power=0 or outdoorsw=0 => BOTH statuses are Stopped (0).
+Switch-expander or relay-expander hardware failure => BOTH statuses report Power Fault (4).
+Each circuit's switch faults are otherwise independent of the other circuit.
