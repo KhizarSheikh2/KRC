@@ -259,16 +259,20 @@ inline void markIndoorPowerCommandAlive()
 }
 
 // =====================================================
-// 0xB0 STATUS RESPONSE - PROTOCOL V2, EXACTLY 45 BYTES
+// 0xB0 STATUS RESPONSE - PROTOCOL V3, EXACTLY 46 BYTES
 // =====================================================
-inline uint8_t currentOutdoorStatusCode()
+inline uint8_t currentOutdoorStatusCodeA()
 {
-  return computeOutdoorStatusCode(systemPower,
-                                  outdoorEnable,
-                                  switchPcfHealthy,
-                                  relayPcaHealthy,
-                                  relayPcaConfigured,
-                                  switchState);
+  return computeOutdoorStatusA(systemPower, outdoorEnable,
+                               switchPcfHealthy, relayPcaHealthy, relayPcaConfigured,
+                               switchState);
+}
+
+inline uint8_t currentOutdoorStatusCodeB()
+{
+  return computeOutdoorStatusB(systemPower, outdoorEnable,
+                               switchPcfHealthy, relayPcaHealthy, relayPcaConfigured,
+                               switchState);
 }
 
 inline void sendOutdoorStatusResponse()
@@ -278,7 +282,8 @@ inline void sendOutdoorStatusResponse()
   payload[AM6_RS485_STATUS_SYSTEM_POWER] = systemPower ? 1 : 0;
   payload[AM6_RS485_STATUS_OUTDOOR_ENABLE] = outdoorEnable ? 1 : 0;
   payload[AM6_RS485_STATUS_EFFECTIVE_POWER] = (systemPower && outdoorEnable) ? 1 : 0;
-  payload[AM6_RS485_STATUS_CODE] = currentOutdoorStatusCode();
+  payload[AM6_RS485_STATUS_CODE_A] = currentOutdoorStatusCodeA();
+  payload[AM6_RS485_STATUS_CODE_B] = currentOutdoorStatusCodeB();
 
   uint8_t roleValidMask = 0;
   uint8_t physicalValidMask = 0;
@@ -332,8 +337,10 @@ inline void sendOutdoorStatusResponse()
   Serial.print(AM6_RS485_PROTOCOL_VERSION);
   Serial.print(" power="); Serial.print(systemPower);
   Serial.print(" outdoorEnable="); Serial.print(outdoorEnable);
-  Serial.print(" status="); Serial.print(payload[AM6_RS485_STATUS_CODE]);
-  Serial.print("("); Serial.print(outdoorStatusText(payload[AM6_RS485_STATUS_CODE])); Serial.print(")");
+  Serial.print(" statusout="); Serial.print(payload[AM6_RS485_STATUS_CODE_A]);
+  Serial.print("("); Serial.print(outdoorStatusText(payload[AM6_RS485_STATUS_CODE_A])); Serial.print(")");
+  Serial.print(" statusoutB="); Serial.print(payload[AM6_RS485_STATUS_CODE_B]);
+  Serial.print("("); Serial.print(outdoorStatusText(payload[AM6_RS485_STATUS_CODE_B])); Serial.print(")");
   Serial.print(" R=");
   Serial.print(R1_State ? 1 : 0); Serial.print(R2_State ? 1 : 0);
   Serial.print(R3_State ? 1 : 0); Serial.print(R4_State ? 1 : 0);
@@ -417,7 +424,7 @@ inline void sendOutdoorConfigSnapshot()
 // =====================================================
 inline void handleOutdoorStatusRequest(const OutdoorRS485Frame &frame)
 {
-  // Protocol v2 request is exact and unambiguous:
+  // Protocol v3 request is exact and unambiguous:
   // [0] version, [1] system_power, [2] outdoorsw.
   if (frame.len != AM6_RS485_STATUS_REQUEST_LEN)
   {
@@ -689,7 +696,7 @@ inline void initRS485()
   Serial.print("[RS485] Indoor=0x"); printHexByte(RS485_ADDR_INDOOR);
   Serial.print(" Outdoor=0x"); printHexByte(RS485_ADDR_OUTDOOR);
   Serial.print(" Baud="); Serial.println(RS485_BAUD_RATE);
-  Serial.println("[RS485] Protocol v2: 0x30 LEN=3, 0xB0 LEN=45");
+  Serial.println("[RS485] Protocol v3: 0x30 LEN=3, 0xB0 LEN=46 (statusout + statusoutB)");
   Serial.println("[RS485] Supported: 0x30 status/power, 0x31 config set, 0x32 config snapshot");
   Serial.println("[RS485] Replies:    0xB0 status, 0xB1 config ACK, 0xB2 config snapshot");
   Serial.println("[RS485] Idle mode = RECEIVE; Outdoor never transmits spontaneously");

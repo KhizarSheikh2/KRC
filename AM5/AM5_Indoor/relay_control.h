@@ -6,7 +6,7 @@
 #if (RELAY_LOW_PIN == RELAY_MEDIUM_PIN) || (RELAY_LOW_PIN == RELAY_HIGH_PIN) || \
     (RELAY_LOW_PIN == RELAY_HEAT_PIN) || (RELAY_MEDIUM_PIN == RELAY_HIGH_PIN) || \
     (RELAY_MEDIUM_PIN == RELAY_HEAT_PIN) || (RELAY_HIGH_PIN == RELAY_HEAT_PIN)
-#error "AM6 relay GPIO pins must all be unique"
+#error "AM5 relay GPIO pins must all be unique"
 #endif
 
 inline uint8_t relayOnLevel() { return RELAY_ACTIVE_LOW ? LOW : HIGH; }
@@ -163,7 +163,7 @@ inline void setSystemPower(int state, bool persist = true) {
   if (system_power == 0) {
     allFanRelaysOff();
     relayWrite(RELAY_HEAT_PIN, false);
-    Serial.println("[SYSTEM] OFF - complete AM6 system disabled");
+    Serial.println("[SYSTEM] OFF - complete AM5 system disabled");
     return;
   }
 
@@ -197,7 +197,7 @@ inline void relayInit() {
   if (hvac_mode != MODE_COOL && hvac_mode != MODE_HEAT) hvac_mode = MODE_COOL;
 
   rs485_urgent_outdoor_sync = true;
-  Serial.println("[RELAY] AM6 Indoor initialized - complete system OFF");
+  Serial.println("[RELAY] AM5 Indoor initialized - complete system OFF");
 }
 
 #endif

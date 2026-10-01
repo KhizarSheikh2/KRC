@@ -137,7 +137,7 @@ inline void publishDocument(const String& topic,
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001
+// PUBLISHED: /KRC/AM5-AAA001
 // =====================================================
 void publishMainStatus() {
   if (!client.connected()) return;
@@ -157,7 +157,7 @@ void publishMainStatus() {
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001/IndoorTemps
+// PUBLISHED: /KRC/AM5-AAA001/IndoorTemps
 // =====================================================
 void publishIndoorTemps() {
   if (!client.connected()) return;
@@ -172,7 +172,7 @@ void publishIndoorTemps() {
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001/OutdoorTemps
+// PUBLISHED: /KRC/AM5-AAA001/OutdoorTemps
 // =====================================================
 void publishOutdoorTemps() {
   if (!client.connected()) return;
@@ -187,7 +187,7 @@ void publishOutdoorTemps() {
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001/indoorSensor
+// PUBLISHED: /KRC/AM5-AAA001/indoorSensor
 // IMPORTANT: temperatures, offsets and roles are NUMBERS. The previous build
 // published these as JSON strings, which breaks mobile apps that deserialize
 // them into numeric fields. Compatibility aliases are included as extra keys.
@@ -234,7 +234,7 @@ void publishIndoorSensorConfig() {
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001/outdoorSensor
+// PUBLISHED: /KRC/AM5-AAA001/outdoorSensor
 // Numeric JSON types + compatibility aliases, same as Indoor.
 // =====================================================
 void publishOutdoorSensorConfig() {
@@ -284,7 +284,7 @@ void publishOutdoorSensorConfig() {
 }
 
 // =====================================================
-// PUBLISHED: /KRC/AM6-AAA001/AM-Input-Output
+// PUBLISHED: /KRC/AM5-AAA001/AM-Input-Output
 // Outdoor mapping:
 // SW1 High PSI A, SW2 Low PSI A, SW3 Overload A, SW4 Power A
 // SW5 High PSI B, SW6 Low PSI B, SW7 Overload B, SW8 Power B
@@ -462,7 +462,7 @@ bool parseRoleValue(JsonVariantConst value, uint8_t maxRole, uint8_t& parsedRole
 }
 
 // =====================================================
-// RECEIVED: /test/AM6-AAA001/2
+// RECEIVED: /test/AM5-AAA001/2
 // {"indoorsw":1,"outdoorsw":1,"setPoint":22,"powersw":1,
 //  "fanSw":1,"mode":0}
 // =====================================================
@@ -610,7 +610,7 @@ inline bool addressFieldMatches(const StaticJsonDocument<4096>& doc,
 }
 
 // =====================================================
-// RECEIVED: /test/AM6-AAA001/4  (Indoor sensor config)
+// RECEIVED: /test/AM5-AAA001/4  (Indoor sensor config)
 // Accepted role formats:
 //   "<16HEX-ROM>": 3
 //   "sensor01": 3       (legacy/mobile-app slot alias)
@@ -684,7 +684,7 @@ void Extract_indoor_sensor_config(String incomingMessage) {
 }
 
 // =====================================================
-// RECEIVED: /test/AM6-AAA001/3  (Outdoor sensor config)
+// RECEIVED: /test/AM5-AAA001/3  (Outdoor sensor config)
 // The command is cached if the Outdoor ROM snapshot has not arrived yet.
 // Once the snapshot is available it is replayed automatically.
 // =====================================================
@@ -776,7 +776,7 @@ inline void servicePendingOutdoorSensorConfig() {
 }
 
 void DEVICE_INIT() {
-  Serial.println("Loading saved AM6 Indoor settings from Preferences");
+  Serial.println("Loading saved AM5 Indoor settings from Preferences");
 
   // Indoor is the authoritative master. Restore the user's last complete-system
   // power state here. Outdoor still starts fail-safe OFF and requires a fresh

@@ -13,12 +13,13 @@ CST820Touch touch;
 
 namespace {
 static lv_disp_draw_buf_t drawBuffer;
-static lv_color_t drawBufferPixels[AM6_SCREEN_WIDTH * AM6_LVGL_BUFFER_LINES];
+static lv_color_t drawBufferPixels[AM5_SCREEN_WIDTH * AM5_LVGL_BUFFER_LINES];
 
 uint32_t lastLvglTickMs = 0;
 uint32_t lastLvglHandlerMs = 0;
 uint32_t backlightFadeStartedMs = 0;
 uint8_t lastBacklightLevel = 0;
+bool firstFrameReady = false;
 
 void displayFlush(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* colorMap) 
 {
@@ -29,6 +30,12 @@ void displayFlush(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* colorM
     tft.setAddrWindow(area->x1, area->y1, width, height);
     tft.pushColors(reinterpret_cast<uint16_t*>(&colorMap->full), width * height, true);
     tft.endWrite();
+
+    if (!firstFrameReady) {
+        firstFrameReady = true;
+        backlightFadeStartedMs = millis();
+        Serial.println("[display] First LVGL frame ready; enabling backlight fade.");
+    }
 
     lv_disp_flush_ready(disp);
 }
@@ -65,7 +72,7 @@ void touchRead(lv_indev_drv_t* /*indev*/, lv_indev_data_t* data) {
     // The CST820 can occasionally miss one I2C sample while a finger is
     // still down. Keep the previous press alive briefly so LVGL does not see
     // false release/re-press cycles that make buttons feel unreliable.
-    if (pressLatched && (now - lastValidTouchMs) <= AM6_TOUCH_RELEASE_GRACE_MS) {
+    if (pressLatched && (now - lastValidTouchMs) <= AM5_TOUCH_RELEASE_GRACE_MS) {
         data->state = LV_INDEV_STATE_PR;
         data->point.x = static_cast<lv_coord_t>(lastX);
         data->point.y = static_cast<lv_coord_t>(lastY);
@@ -82,26 +89,27 @@ void touchRead(lv_indev_drv_t* /*indev*/, lv_indev_data_t* data) {
 }
 
 void initBacklight() {
-    ledcSetup(AM6_BACKLIGHT_PWM_CH,
-              AM6_BACKLIGHT_PWM_FREQ,
-              AM6_BACKLIGHT_PWM_BITS);
-    ledcAttachPin(AM6_BACKLIGHT_PIN, AM6_BACKLIGHT_PWM_CH);
-    ledcWrite(AM6_BACKLIGHT_PWM_CH, 0);
+    ledcSetup(AM5_BACKLIGHT_PWM_CH,
+              AM5_BACKLIGHT_PWM_FREQ,
+              AM5_BACKLIGHT_PWM_BITS);
+    ledcAttachPin(AM5_BACKLIGHT_PIN, AM5_BACKLIGHT_PWM_CH);
+    ledcWrite(AM5_BACKLIGHT_PWM_CH, 0);
     backlightFadeStartedMs = millis();
     lastBacklightLevel = 0;
 }
 
 void serviceBacklight() {
-    if (lastBacklightLevel >= AM6_BACKLIGHT_LEVEL) return;
+    if (!firstFrameReady) return;
+    if (lastBacklightLevel >= AM5_BACKLIGHT_LEVEL) return;
 
     const uint32_t elapsed = millis() - backlightFadeStartedMs;
-    uint32_t value = (elapsed * AM6_BACKLIGHT_LEVEL) / 320UL;
-    if (value > AM6_BACKLIGHT_LEVEL) value = AM6_BACKLIGHT_LEVEL;
+    uint32_t value = (elapsed * AM5_BACKLIGHT_LEVEL) / 320UL;
+    if (value > AM5_BACKLIGHT_LEVEL) value = AM5_BACKLIGHT_LEVEL;
 
     const uint8_t level = static_cast<uint8_t>(value);
     if (level != lastBacklightLevel) {
         lastBacklightLevel = level;
-        ledcWrite(AM6_BACKLIGHT_PWM_CH, level);
+        ledcWrite(AM5_BACKLIGHT_PWM_CH, level);
     }
 }
 
@@ -111,12 +119,12 @@ void initLvgl() {
     lv_disp_draw_buf_init(&drawBuffer,
                           drawBufferPixels,
                           nullptr,
-                          AM6_SCREEN_WIDTH * AM6_LVGL_BUFFER_LINES);
+                          AM5_SCREEN_WIDTH * AM5_LVGL_BUFFER_LINES);
 
     static lv_disp_drv_t displayDriver;
     lv_disp_drv_init(&displayDriver);
-    displayDriver.hor_res = AM6_SCREEN_WIDTH;
-    displayDriver.ver_res = AM6_SCREEN_HEIGHT;
+    displayDriver.hor_res = AM5_SCREEN_WIDTH;
+    displayDriver.ver_res = AM5_SCREEN_HEIGHT;
     displayDriver.flush_cb = displayFlush;
     displayDriver.draw_buf = &drawBuffer;
     lv_disp_drv_register(&displayDriver);
@@ -152,17 +160,19 @@ void setup() {
 
     Serial.println();
     Serial.println("====================================");
-    Serial.println(" AM6 DISPLAY ");
+    Serial.println(" AM5 DISPLAY ");
     Serial.println(" TFT_eSPI + LVGL ");
     Serial.println("====================================");
 
     initBacklight();
 
     tft.init();
-    tft.setRotation(AM6_DISPLAY_ROTATION);
-    tft.invertDisplay(AM6_TFT_INVERT != 0);
+    tft.setRotation(AM5_DISPLAY_ROTATION);
+    tft.invertDisplay(AM5_TFT_INVERT != 0);
     delay(20);
-    tft.fillScreen(TFT_WHITE);
+    // Keep the physical framebuffer black while the backlight is off.
+    // The panel inversion command is handled by the controller; RGB data is not software-complemented.
+    tft.fillScreen(TFT_BLACK);
 
     const bool touchOk = touch.begin();
     Serial.println(touchOk ? "Ready" : "Not detected");

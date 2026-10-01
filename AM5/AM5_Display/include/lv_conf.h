@@ -2,7 +2,7 @@
 #define LV_CONF_H
 
 /*
- * AM6 Display - LVGL 8.3.11 configuration
+ * AM5 Display - LVGL 8.3.11 configuration
  * Target: JC2432W328, ESP32, 320x240 landscape, TFT_eSPI + CST820.
  *
  * IMPORTANT:
@@ -33,7 +33,7 @@
 #define LV_DPI_DEF 130
 
 /* ==================== DRAWING ================== */
-/* Required for rounded corners, gradients and shadows in the AM6 UI. */
+/* Required for rounded corners, gradients and shadows in the AM5 UI. */
 #define LV_DRAW_COMPLEX 1
 #define LV_SHADOW_CACHE_SIZE 0
 #define LV_CIRCLE_CACHE_SIZE 4
@@ -119,7 +119,7 @@
 #define LV_USE_LABEL      1
 #define LV_LABEL_TEXT_SELECTION 0
 #define LV_LABEL_LONG_TXT_HINT 0
-#define LV_USE_LINE       0
+#define LV_USE_LINE       1
 #define LV_USE_ROLLER     0
 #define LV_USE_SLIDER     0
 #define LV_USE_SWITCH     0
@@ -146,7 +146,7 @@
 #define LV_USE_WIN        0
 
 /* ==================== THEMES =================== */
-/* AM6 styles every object explicitly, so built-in themes are unnecessary. */
+/* AM5 styles every object explicitly, so built-in themes are unnecessary. */
 #define LV_USE_THEME_DEFAULT 0
 #define LV_USE_THEME_BASIC   0
 #define LV_USE_THEME_MONO    0

@@ -10,54 +10,40 @@
 namespace {
 
 // ============================================================
-// AM6 LIGHT INDUSTRIAL UI
-// High-contrast palette for a white/light background so text,
-// state colors, and header status remain clearly visible.
+// AM5 UI - reference-matched dark industrial dashboard
+// 320x240 landscape, based on the supplied AM5 reference image.
 // ============================================================
-constexpr uint32_t C_BG            = 0xF3F7FA;
-constexpr uint32_t C_BG_2          = 0xE8EFF5;
-constexpr uint32_t C_HEADER        = 0x0E2A43;
-constexpr uint32_t C_HEADER_BORDER = 0x173A59;
-constexpr uint32_t C_HEADER_ACCENT = 0x12B5EA;
-
-constexpr uint32_t C_CARD          = 0xFFFFFF;
-constexpr uint32_t C_SURFACE       = 0xF7FAFC;
-constexpr uint32_t C_SURFACE_2     = 0xEDF3F8;
-constexpr uint32_t C_BORDER        = 0xC8D6E5;
-constexpr uint32_t C_BORDER_SOFT   = 0xDCE6EE;
-
-constexpr uint32_t C_TEXT          = 0x102A43;
-constexpr uint32_t C_TEXT_2        = 0x334E68;
-constexpr uint32_t C_TEXT_MUTED    = 0x627D98;
-
-constexpr uint32_t C_FAN           = 0x0B8F8C;
-constexpr uint32_t C_FAN_SOFT      = 0xE6F8F7;
-constexpr uint32_t C_ON            = 0x1F9D63;
-constexpr uint32_t C_ON_SOFT       = 0xE9F8EF;
-constexpr uint32_t C_OFF           = 0xD64545;
-constexpr uint32_t C_OFF_SOFT      = 0xFDECEC;
-constexpr uint32_t C_COOL          = 0x1976F3;
-constexpr uint32_t C_COOL_SOFT     = 0xEAF3FF;
-constexpr uint32_t C_HEAT          = 0xD38A12;
-constexpr uint32_t C_HEAT_SOFT     = 0xFFF4DF;
-constexpr uint32_t C_WAIT          = 0xB7791F;
-constexpr uint32_t C_WAIT_SOFT     = 0xFCF3E1;
-constexpr uint32_t C_SYNC          = 0x0E86C8;
-constexpr uint32_t C_SYNC_SOFT     = 0xE8F4FB;
+constexpr uint32_t C_BLACK         = 0x000000;
+constexpr uint32_t C_BG_TOP        = 0x020A13;
+constexpr uint32_t C_BG_BOTTOM     = 0x00101F;
+constexpr uint32_t C_PANEL_TOP     = 0x041322;
+constexpr uint32_t C_PANEL_BOTTOM  = 0x00101E;
+constexpr uint32_t C_BLUE          = 0x129DFF;
+constexpr uint32_t C_CYAN          = 0x21D8FF;
+constexpr uint32_t C_CYAN_SOFT     = 0x8DE8FF;
+constexpr uint32_t C_WHITE         = 0xF7FBFF;
+constexpr uint32_t C_MUTED         = 0xB4C7DC;
+constexpr uint32_t C_OFFLINE       = 0x1A2533;
+constexpr uint32_t C_OFFLINE_EDGE  = 0x385C84;
+constexpr uint32_t C_COOL_1        = 0x159EFF;
+constexpr uint32_t C_COOL_2        = 0x075BC9;
+constexpr uint32_t C_GREEN_1       = 0x29E581;
+constexpr uint32_t C_GREEN_2       = 0x0A8549;
+constexpr uint32_t C_RED_1         = 0xFF6666;
+constexpr uint32_t C_RED_2         = 0x7A2028;
+constexpr uint32_t C_AMBER         = 0xF5C34D;
 
 lv_obj_t* splashScreen = nullptr;
 lv_obj_t* splashBar = nullptr;
 lv_obj_t* dashboardScreen = nullptr;
 
 lv_obj_t* statusChip = nullptr;
-lv_obj_t* statusDot = nullptr;
 lv_obj_t* statusLabel = nullptr;
+lv_obj_t* sideStatusChip = nullptr;
+lv_obj_t* sideStatusLabel = nullptr;
 
 lv_obj_t* powerButton = nullptr;
 lv_obj_t* powerIcon = nullptr;
-lv_obj_t* powerStatePill = nullptr;
-lv_obj_t* powerStateLabel = nullptr;
-lv_obj_t* powerHintLabel = nullptr;
 
 lv_obj_t* coolButton = nullptr;
 lv_obj_t* heatButton = nullptr;
@@ -71,13 +57,21 @@ lv_obj_t* lowLabel = nullptr;
 lv_obj_t* mediumLabel = nullptr;
 lv_obj_t* highLabel = nullptr;
 
+lv_obj_t* coolIconHost = nullptr;
+lv_obj_t* heatIconHost = nullptr;
+lv_obj_t* lowIconHost = nullptr;
+lv_obj_t* mediumIconHost = nullptr;
+lv_obj_t* highIconHost = nullptr;
+
 uint32_t splashStartedMs = 0;
 uint32_t lastModelRefreshMs = 0;
 uint32_t lastRevision = 0;
 bool dashboardLoaded = false;
-AM6WirelessUiState lastLinkState = AM6_LINK_OFFLINE;
+AM5WirelessUiState lastLinkState = AM5_LINK_OFFLINE;
 
 lv_color_t color(uint32_t hex) {
+    // IMPORTANT: do not complement colors here. The ST7789 inversion command
+    // is a panel-drive setting on this hardware, not a request to XOR RGB data.
     return lv_color_hex(hex);
 }
 
@@ -86,76 +80,188 @@ void noScroll(lv_obj_t* obj) {
     lv_obj_set_style_outline_width(obj, 0, LV_PART_MAIN);
 }
 
-void baseObject(lv_obj_t* obj) {
+void resetObject(lv_obj_t* obj) {
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_outline_width(obj, 0, LV_PART_MAIN);
     noScroll(obj);
 }
 
-void styleCard(lv_obj_t* obj) {
-    baseObject(obj);
-    lv_obj_set_style_radius(obj, 12, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(obj, color(C_CARD), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(obj, LV_GRAD_DIR_NONE, LV_PART_MAIN);
-    lv_obj_set_style_border_color(obj, color(C_BORDER), LV_PART_MAIN);
-    lv_obj_set_style_border_width(obj, 1, LV_PART_MAIN);
+void setOpaqueBg(lv_obj_t* obj, uint32_t top, uint32_t bottom, lv_grad_dir_t dir) {
+    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(obj, color(top), LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_color(obj, color(bottom), LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(obj, dir, LV_PART_MAIN);
 }
 
-void styleSectionTitle(lv_obj_t* label) {
-    lv_obj_set_style_text_color(label, color(C_TEXT_2), LV_PART_MAIN);
+void stylePanel(lv_obj_t* obj, int radius) {
+    resetObject(obj);
+    setOpaqueBg(obj, C_PANEL_TOP, C_PANEL_BOTTOM, LV_GRAD_DIR_VER);
+    lv_obj_set_style_radius(obj, radius, LV_PART_MAIN);
+    lv_obj_set_style_border_color(obj, color(C_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_border_width(obj, 2, LV_PART_MAIN);
+}
+
+void styleButton(lv_obj_t* btn) {
+    resetObject(btn);
+    setOpaqueBg(btn, 0x07203A, 0x031425, LV_GRAD_DIR_HOR);
+    lv_obj_set_style_radius(btn, 11, LV_PART_MAIN);
+    lv_obj_set_style_border_color(btn, color(C_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_border_width(btn, 2, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(btn, 6, LV_PART_MAIN);
+    lv_obj_set_style_shadow_color(btn, color(C_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_shadow_opa(btn, LV_OPA_20, LV_PART_MAIN);
+}
+
+void styleLabel(lv_obj_t* label, const lv_font_t* font, uint32_t c) {
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, color(c), LV_PART_MAIN);
     lv_obj_set_style_text_opa(label, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(label, 1, LV_PART_MAIN);
 }
 
-lv_obj_t* createButtonText(lv_obj_t* btn, const char* text) {
-    lv_obj_t* label = lv_label_create(btn);
+lv_obj_t* makeLabel(lv_obj_t* parent, const char* text, const lv_font_t* font, uint32_t c) {
+    lv_obj_t* label = lv_label_create(parent);
     lv_label_set_text(label, text);
-    lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
-    lv_obj_set_width(label, lv_pct(100));
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, color(C_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(label, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_center(label);
+    styleLabel(label, font, c);
     return label;
 }
 
-void styleControlButton(lv_obj_t* btn) {
-    baseObject(btn);
-    lv_obj_set_style_radius(btn, 10, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(btn, color(C_SURFACE), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(btn, LV_GRAD_DIR_NONE, LV_PART_MAIN);
-    lv_obj_set_style_border_color(btn, color(C_BORDER), LV_PART_MAIN);
-    lv_obj_set_style_border_width(btn, 2, LV_PART_MAIN);
+void makeDivider(lv_obj_t* parent, int x, int y, int w, uint32_t c = C_BLUE) {
+    lv_obj_t* line = lv_obj_create(parent);
+    lv_obj_set_pos(line, x, y);
+    lv_obj_set_size(line, w, 2);
+    resetObject(line);
+    lv_obj_set_style_bg_opa(line, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(line, color(c), LV_PART_MAIN);
 }
 
-void setButtonSelected(lv_obj_t* btn,
-                       lv_obj_t* label,
-                       bool selected,
-                       uint32_t accent,
-                       uint32_t softFill) {
+void drawSnowflake(lv_obj_t* parent, uint32_t c) {
+    // Cleaner 24x24 snowflake for the real panel.
+    static lv_point_t h[]  = {{2, 12}, {22, 12}};
+    static lv_point_t v[]  = {{12, 2}, {12, 22}};
+    static lv_point_t d1[] = {{4, 4}, {20, 20}};
+    static lv_point_t d2[] = {{20, 4}, {4, 20}};
+    static lv_point_t b1[] = {{5, 10}, {8, 7}};
+    static lv_point_t b2[] = {{16, 17}, {19, 14}};
+    static lv_point_t b3[] = {{16, 7}, {19, 10}};
+    static lv_point_t b4[] = {{5, 14}, {8, 17}};
+    static lv_point_t b5[] = {{10, 5}, {7, 8}};
+    static lv_point_t b6[] = {{14, 5}, {17, 8}};
+    static lv_point_t b7[] = {{10, 19}, {7, 16}};
+    static lv_point_t b8[] = {{14, 19}, {17, 16}};
+    lv_point_t* sets[] = {h, v, d1, d2, b1, b2, b3, b4, b5, b6, b7, b8};
+    for (auto* points : sets) {
+        lv_obj_t* line = lv_line_create(parent);
+        lv_line_set_points(line, points, 2);
+        lv_obj_set_size(line, 24, 24);
+        lv_obj_set_pos(line, 0, 0);
+        lv_obj_set_style_line_width(line, (points == h || points == v || points == d1 || points == d2) ? 2 : 1, LV_PART_MAIN);
+        lv_obj_set_style_line_color(line, color(c), LV_PART_MAIN);
+        lv_obj_set_style_line_rounded(line, true, LV_PART_MAIN);
+    }
+}
+
+void drawHeat(lv_obj_t* parent, uint32_t c) {
+    static lv_point_t wave1[] = {{4, 21}, {2, 16}, {6, 11}, {3, 6}, {6, 2}};
+    static lv_point_t wave2[] = {{11, 21}, {9, 16}, {13, 11}, {10, 6}, {13, 2}};
+    static lv_point_t wave3[] = {{18, 21}, {16, 16}, {20, 11}, {17, 6}, {20, 2}};
+    lv_point_t* sets[] = {wave1, wave2, wave3};
+    for (auto* points : sets) {
+        lv_obj_t* line = lv_line_create(parent);
+        lv_line_set_points(line, points, 5);
+        lv_obj_set_size(line, 24, 24);
+        lv_obj_set_pos(line, 0, 0);
+        lv_obj_set_style_line_width(line, 3, LV_PART_MAIN);
+        lv_obj_set_style_line_color(line, color(c), LV_PART_MAIN);
+        lv_obj_set_style_line_rounded(line, true, LV_PART_MAIN);
+    }
+}
+
+void drawFan(lv_obj_t* parent, uint32_t c) {
+    // Three-blade fan icon that reads clearly at 20x20.
+    struct Blade { int x; int y; int w; int h; int r; };
+    const Blade blades[] = {
+        {7, 1, 6, 8, 3},
+        {11, 9, 8, 6, 3},
+        {1, 9, 8, 6, 3}
+    };
+    for (const Blade& b : blades) {
+        lv_obj_t* blade = lv_obj_create(parent);
+        lv_obj_set_pos(blade, b.x, b.y);
+        lv_obj_set_size(blade, b.w, b.h);
+        resetObject(blade);
+        lv_obj_set_style_bg_opa(blade, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(blade, color(c), LV_PART_MAIN);
+        lv_obj_set_style_radius(blade, b.r, LV_PART_MAIN);
+    }
+    lv_obj_t* hub = lv_obj_create(parent);
+    lv_obj_set_pos(hub, 8, 8);
+    lv_obj_set_size(hub, 4, 4);
+    resetObject(hub);
+    lv_obj_set_style_bg_opa(hub, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(hub, color(C_PANEL_TOP), LV_PART_MAIN);
+    lv_obj_set_style_border_color(hub, color(c), LV_PART_MAIN);
+    lv_obj_set_style_border_width(hub, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(hub, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+}
+
+void recolorFan(lv_obj_t* host, uint32_t c) {
+    if (!host) return;
+    const uint32_t count = lv_obj_get_child_cnt(host);
+    for (uint32_t i = 0; i < count; ++i) {
+        lv_obj_t* child = lv_obj_get_child(host, i);
+        if (i < count - 1) lv_obj_set_style_bg_color(child, color(c), LV_PART_MAIN);
+        else lv_obj_set_style_border_color(child, color(c), LV_PART_MAIN);
+    }
+}
+
+void recolorLineIcon(lv_obj_t* host, uint32_t c) {
+    if (!host) return;
+    const uint32_t count = lv_obj_get_child_cnt(host);
+    for (uint32_t i = 0; i < count; ++i) {
+        lv_obj_t* child = lv_obj_get_child(host, i);
+        lv_obj_set_style_line_color(child, color(c), LV_PART_MAIN);
+    }
+}
+
+void setButtonState(lv_obj_t* btn,
+                    lv_obj_t* label,
+                    lv_obj_t* iconHost,
+                    bool selected,
+                    uint32_t accent1,
+                    uint32_t accent2,
+                    bool fanIcon) {
     if (!btn || !label) return;
 
     if (selected) {
-        lv_obj_set_style_bg_color(btn, color(softFill), LV_PART_MAIN);
-        lv_obj_set_style_border_color(btn, color(accent), LV_PART_MAIN);
+        setOpaqueBg(btn, accent1, accent2, LV_GRAD_DIR_HOR);
+        lv_obj_set_style_border_color(btn, color(C_CYAN), LV_PART_MAIN);
         lv_obj_set_style_border_width(btn, 2, LV_PART_MAIN);
-        lv_obj_set_style_text_color(label, color(accent), LV_PART_MAIN);
+        lv_obj_set_style_shadow_width(btn, 9, LV_PART_MAIN);
+        lv_obj_set_style_shadow_color(btn, color(accent1), LV_PART_MAIN);
+        lv_obj_set_style_shadow_opa(btn, LV_OPA_30, LV_PART_MAIN);
+        lv_obj_set_style_text_color(label, color(C_WHITE), LV_PART_MAIN);
     } else {
-        lv_obj_set_style_bg_color(btn, color(C_SURFACE), LV_PART_MAIN);
-        lv_obj_set_style_border_color(btn, color(C_BORDER), LV_PART_MAIN);
-        lv_obj_set_style_border_width(btn, 2, LV_PART_MAIN);
-        lv_obj_set_style_text_color(label, color(C_TEXT), LV_PART_MAIN);
+        setOpaqueBg(btn, 0x07203A, 0x031425, LV_GRAD_DIR_HOR);
+        lv_obj_set_style_border_color(btn, color(C_BLUE), LV_PART_MAIN);
+        lv_obj_set_style_shadow_width(btn, 5, LV_PART_MAIN);
+        lv_obj_set_style_shadow_opa(btn, LV_OPA_20, LV_PART_MAIN);
+        lv_obj_set_style_text_color(label, color(C_WHITE), LV_PART_MAIN);
     }
 
-    lv_obj_set_style_text_opa(label, LV_OPA_COVER, LV_PART_MAIN);
+    if (fanIcon) {
+        recolorFan(iconHost, selected ? C_WHITE : C_CYAN_SOFT);
+    } else if (iconHost == coolIconHost) {
+        recolorLineIcon(iconHost, selected ? C_WHITE : C_CYAN_SOFT);
+    } else if (iconHost == heatIconHost) {
+        recolorLineIcon(iconHost, selected ? C_WHITE : C_GREEN_1);
+    }
 }
 
 void powerEvent(lv_event_t* e) {
     if (lv_event_get_code(e) != LV_EVENT_PRESSED) return;
-    const AM6DisplayState state = displayStateGet();
+    const AM5DisplayState state = displayStateGet();
     wirelessLinkRequestPower(state.systemPower == 1 ? 0 : 1);
 }
 
@@ -171,218 +277,186 @@ void fanEvent(lv_event_t* e) {
     wirelessLinkRequestFan(static_cast<uint8_t>(value));
 }
 
-lv_obj_t* createCard(lv_obj_t* parent, int x, int y, int w, int h) {
-    lv_obj_t* card = lv_obj_create(parent);
-    lv_obj_set_pos(card, x, y);
-    lv_obj_set_size(card, w, h);
-    styleCard(card);
-    return card;
-}
-
 void createSplash() {
     splashScreen = lv_obj_create(nullptr);
-    baseObject(splashScreen);
-    lv_obj_set_style_bg_color(splashScreen, color(C_BG_2), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_color(splashScreen, color(C_BG), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(splashScreen, LV_GRAD_DIR_VER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(splashScreen, 0, LV_PART_MAIN);
+    resetObject(splashScreen);
+    setOpaqueBg(splashScreen, C_BLACK, C_BG_BOTTOM, LV_GRAD_DIR_VER);
 
-    lv_obj_t* badge = lv_obj_create(splashScreen);
-    lv_obj_set_size(badge, 84, 84);
-    lv_obj_align(badge, LV_ALIGN_CENTER, 0, -34);
-    baseObject(badge);
-    lv_obj_set_style_radius(badge, 18, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(badge, color(0xE7F6FB), LV_PART_MAIN);
-    lv_obj_set_style_border_color(badge, color(C_HEADER_ACCENT), LV_PART_MAIN);
-    lv_obj_set_style_border_width(badge, 2, LV_PART_MAIN);
+    lv_obj_t* frame = lv_obj_create(splashScreen);
+    lv_obj_set_pos(frame, 24, 50);
+    lv_obj_set_size(frame, 272, 132);
+    stylePanel(frame, 14);
 
-    lv_obj_t* title = lv_label_create(badge);
-    lv_label_set_text(title, "AM5");
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(title, color(C_HEADER_ACCENT), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(title, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_center(title);
+    lv_obj_t* title = makeLabel(frame, "AM5", &lv_font_montserrat_32, C_WHITE);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 18);
 
-    lv_obj_t* subtitle = lv_label_create(splashScreen);
-    lv_label_set_text(subtitle, "ALERT MASTER 5");
-    lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_16, LV_PART_MAIN);
-    lv_obj_set_style_text_color(subtitle, color(C_TEXT), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(subtitle, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 30);
+    lv_obj_t* subtitle = makeLabel(frame, "ALERT MASTER 6", &lv_font_montserrat_16, C_CYAN_SOFT);
+    lv_obj_align(subtitle, LV_ALIGN_TOP_MID, 0, 58);
 
-    lv_obj_t* caption = lv_label_create(splashScreen);
-    lv_label_set_text(caption, "SYSTEM CONTROL DISPLAY");
-    lv_obj_set_style_text_font(caption, &lv_font_montserrat_12, LV_PART_MAIN);
-    lv_obj_set_style_text_color(caption, color(C_TEXT_MUTED), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(caption, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(caption, LV_ALIGN_CENTER, 0, 52);
-
-    splashBar = lv_bar_create(splashScreen);
-    lv_obj_set_size(splashBar, 148, 6);
-    lv_obj_align(splashBar, LV_ALIGN_CENTER, 0, 81);
+    splashBar = lv_bar_create(frame);
+    lv_obj_set_size(splashBar, 164, 7);
+    lv_obj_align(splashBar, LV_ALIGN_BOTTOM_MID, 0, -20);
     lv_bar_set_range(splashBar, 0, 100);
     lv_bar_set_value(splashBar, 0, LV_ANIM_OFF);
-    lv_obj_set_style_radius(splashBar, 3, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(splashBar, color(C_SURFACE_2), LV_PART_MAIN);
-    lv_obj_set_style_radius(splashBar, 3, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(splashBar, color(C_HEADER_ACCENT), LV_PART_INDICATOR);
+    lv_obj_set_style_radius(splashBar, 4, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(splashBar, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(splashBar, color(0x102439), LV_PART_MAIN);
+    lv_obj_set_style_radius(splashBar, 4, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(splashBar, color(C_BLUE), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_grad_color(splashBar, color(C_CYAN), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_grad_dir(splashBar, LV_GRAD_DIR_HOR, LV_PART_INDICATOR);
 }
 
 void createHeader(lv_obj_t* parent) {
     lv_obj_t* header = lv_obj_create(parent);
-    lv_obj_set_pos(header, 0, 0);
-    lv_obj_set_size(header, 320, 42);
-    baseObject(header);
-    lv_obj_set_style_bg_color(header, color(C_HEADER), LV_PART_MAIN);
-    lv_obj_set_style_border_color(header, color(C_HEADER_BORDER), LV_PART_MAIN);
-    lv_obj_set_style_border_width(header, 1, LV_PART_MAIN);
-    lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, LV_PART_MAIN);
+    lv_obj_set_pos(header, 4, 4);
+    lv_obj_set_size(header, 312, 40);
+    stylePanel(header, 11);
 
-    lv_obj_t* logo = lv_label_create(header);
-    lv_label_set_text(logo, "AM5");
-    lv_obj_set_style_text_font(logo, &lv_font_montserrat_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(logo, color(C_HEADER_ACCENT), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(logo, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(logo, LV_ALIGN_LEFT_MID, 12, -1);
-
-    lv_obj_t* accent = lv_obj_create(header);
-    lv_obj_set_size(accent, 30, 3);
-    lv_obj_align(accent, LV_ALIGN_LEFT_MID, 14, 12);
-    baseObject(accent);
-    lv_obj_set_style_radius(accent, 2, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(accent, color(C_HEADER_ACCENT), LV_PART_MAIN);
-    lv_obj_set_style_border_width(accent, 0, LV_PART_MAIN);
+    lv_obj_t* logo = makeLabel(header, "AM5", &lv_font_montserrat_32, C_WHITE);
+    lv_obj_align(logo, LV_ALIGN_LEFT_MID, 10, -1);
 
     statusChip = lv_obj_create(header);
-    lv_obj_set_size(statusChip, 98, 26);
-    lv_obj_align(statusChip, LV_ALIGN_RIGHT_MID, -8, 0);
-    baseObject(statusChip);
+    lv_obj_set_size(statusChip, 78, 26);
+    lv_obj_align(statusChip, LV_ALIGN_RIGHT_MID, -6, 0);
+    resetObject(statusChip);
+    lv_obj_set_style_bg_opa(statusChip, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(statusChip, color(C_OFFLINE), LV_PART_MAIN);
     lv_obj_set_style_radius(statusChip, 13, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(statusChip, color(C_SYNC_SOFT), LV_PART_MAIN);
-    lv_obj_set_style_border_color(statusChip, color(C_SYNC), LV_PART_MAIN);
-    lv_obj_set_style_border_width(statusChip, 1, LV_PART_MAIN);
+    lv_obj_set_style_border_color(statusChip, color(C_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_border_width(statusChip, 2, LV_PART_MAIN);
 
-    statusDot = lv_obj_create(statusChip);
-    lv_obj_set_size(statusDot, 8, 8);
-    lv_obj_align(statusDot, LV_ALIGN_LEFT_MID, 10, 0);
-    baseObject(statusDot);
-    lv_obj_set_style_radius(statusDot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(statusDot, color(C_SYNC), LV_PART_MAIN);
-    lv_obj_set_style_border_width(statusDot, 0, LV_PART_MAIN);
-
-    statusLabel = lv_label_create(statusChip);
-    lv_label_set_text(statusLabel, "SYNC");
-    lv_obj_set_style_text_font(statusLabel, &lv_font_montserrat_12, LV_PART_MAIN);
-    lv_obj_set_style_text_color(statusLabel, color(C_SYNC), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(statusLabel, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(statusLabel, LV_ALIGN_LEFT_MID, 24, 0);
+    statusLabel = makeLabel(statusChip, "OFFLINE", &lv_font_montserrat_14, C_WHITE);
+    lv_obj_center(statusLabel);
 }
 
-void createPowerCard(lv_obj_t* parent) {
-    lv_obj_t* card = createCard(parent, 8, 48, 104, 184);
+void createPowerPanel(lv_obj_t* parent) {
+    lv_obj_t* panel = lv_obj_create(parent);
+    lv_obj_set_pos(panel, 4, 48);
+    lv_obj_set_size(panel, 64, 188);
+    stylePanel(panel, 11);
 
-    lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "POWER");
-    styleSectionTitle(title);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_t* title = makeLabel(panel, "Power", &lv_font_montserrat_16, C_WHITE);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 18);
 
-    powerButton = lv_btn_create(card);
-    lv_obj_set_size(powerButton, 74, 74);
-    lv_obj_align(powerButton, LV_ALIGN_TOP_MID, 0, 34);
-    baseObject(powerButton);
+    powerButton = lv_btn_create(panel);
+    lv_obj_set_size(powerButton, 50, 50);
+    lv_obj_align(powerButton, LV_ALIGN_TOP_MID, 0, 54);
+    resetObject(powerButton);
+    setOpaqueBg(powerButton, 0x0B3A67, 0x04162A, LV_GRAD_DIR_VER);
     lv_obj_set_style_radius(powerButton, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(powerButton, color(C_OFF_SOFT), LV_PART_MAIN);
-    lv_obj_set_style_border_color(powerButton, color(C_OFF), LV_PART_MAIN);
-    lv_obj_set_style_border_width(powerButton, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(powerButton, color(C_CYAN), LV_PART_MAIN);
+    lv_obj_set_style_border_width(powerButton, 3, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(powerButton, 8, LV_PART_MAIN);
+    lv_obj_set_style_shadow_color(powerButton, color(C_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_shadow_opa(powerButton, LV_OPA_30, LV_PART_MAIN);
     lv_obj_add_event_cb(powerButton, powerEvent, LV_EVENT_PRESSED, nullptr);
 
-    powerIcon = lv_label_create(powerButton);
-    lv_label_set_text(powerIcon, LV_SYMBOL_POWER);
-    lv_obj_set_style_text_font(powerIcon, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(powerIcon, color(C_OFF), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(powerIcon, LV_OPA_COVER, LV_PART_MAIN);
+    powerIcon = makeLabel(powerButton, LV_SYMBOL_POWER, &lv_font_montserrat_24, C_CYAN);
     lv_obj_center(powerIcon);
 
-    powerStatePill = lv_obj_create(card);
-    lv_obj_set_size(powerStatePill, 72, 26);
-    lv_obj_align(powerStatePill, LV_ALIGN_TOP_MID, 0, 116);
-    baseObject(powerStatePill);
-    lv_obj_set_style_radius(powerStatePill, 13, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(powerStatePill, color(C_OFF_SOFT), LV_PART_MAIN);
-    lv_obj_set_style_border_color(powerStatePill, color(C_OFF), LV_PART_MAIN);
-    lv_obj_set_style_border_width(powerStatePill, 1, LV_PART_MAIN);
+    makeDivider(panel, 8, 120, 48, C_BLUE);
 
-    powerStateLabel = lv_label_create(powerStatePill);
-    lv_label_set_text(powerStateLabel, "OFF");
-    lv_obj_set_style_text_font(powerStateLabel, &lv_font_montserrat_12, LV_PART_MAIN);
-    lv_obj_set_style_text_color(powerStateLabel, color(C_OFF), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(powerStateLabel, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_center(powerStateLabel);
+    lv_obj_t* statusTitle = makeLabel(panel, "Status", &lv_font_montserrat_14, C_WHITE);
+    lv_obj_align(statusTitle, LV_ALIGN_TOP_MID, 0, 128);
 
-    powerHintLabel = lv_label_create(card);
-    lv_label_set_text(powerHintLabel, "SYSTEM OFF");
-    lv_obj_set_width(powerHintLabel, 90);
-    lv_obj_set_style_text_align(powerHintLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(powerHintLabel, &lv_font_montserrat_12, LV_PART_MAIN);
-    lv_obj_set_style_text_color(powerHintLabel, color(C_OFF), LV_PART_MAIN);
-    lv_obj_set_style_text_opa(powerHintLabel, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(powerHintLabel, LV_ALIGN_BOTTOM_MID, 0, -12);
+    sideStatusChip = lv_obj_create(panel);
+    lv_obj_set_size(sideStatusChip, 54, 26);
+    lv_obj_align(sideStatusChip, LV_ALIGN_BOTTOM_MID, 0, -8);
+    resetObject(sideStatusChip);
+    lv_obj_set_style_bg_opa(sideStatusChip, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(sideStatusChip, color(C_OFFLINE), LV_PART_MAIN);
+    lv_obj_set_style_radius(sideStatusChip, 8, LV_PART_MAIN);
+    lv_obj_set_style_border_color(sideStatusChip, color(C_OFFLINE_EDGE), LV_PART_MAIN);
+    lv_obj_set_style_border_width(sideStatusChip, 2, LV_PART_MAIN);
+
+    sideStatusLabel = makeLabel(sideStatusChip, "OFFLINE", &lv_font_montserrat_12, C_WHITE);
+    lv_obj_center(sideStatusLabel);
 }
 
-void createModeCard(lv_obj_t* parent) {
-    lv_obj_t* card = createCard(parent, 120, 48, 192, 82);
+void makeSectionTitle(lv_obj_t* panel, const char* text, int panelW, int lineW) {
+    lv_obj_t* title = makeLabel(panel, text, &lv_font_montserrat_20, C_CYAN_SOFT);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 6);
 
-    lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "MODE");
-    styleSectionTitle(title);
-    lv_obj_set_pos(title, 10, 8);
+    makeDivider(panel, 10, 18, lineW, C_BLUE);
+    makeDivider(panel, panelW - 10 - lineW, 18, lineW, C_BLUE);
+}
 
-    coolButton = lv_btn_create(card);
-    lv_obj_set_pos(coolButton, 8, 30);
-    lv_obj_set_size(coolButton, 84, 44);
-    styleControlButton(coolButton);
-    coolLabel = createButtonText(coolButton, "COOL");
+lv_obj_t* makeIconHost(lv_obj_t* btn, int x, int y, int w = 34, int h = 34) {
+    lv_obj_t* host = lv_obj_create(btn);
+    lv_obj_set_pos(host, x, y);
+    lv_obj_set_size(host, w, h);
+    resetObject(host);
+    lv_obj_set_style_bg_opa(host, LV_OPA_TRANSP, LV_PART_MAIN);
+    return host;
+}
+
+void createModePanel(lv_obj_t* parent) {
+    lv_obj_t* panel = lv_obj_create(parent);
+    lv_obj_set_pos(panel, 72, 48);
+    lv_obj_set_size(panel, 244, 92);
+    stylePanel(panel, 11);
+    makeSectionTitle(panel, "MODE", 244, 55);
+
+    coolButton = lv_btn_create(panel);
+    lv_obj_set_pos(coolButton, 8, 34);
+    lv_obj_set_size(coolButton, 112, 50);
+    styleButton(coolButton);
     lv_obj_add_event_cb(coolButton, modeEvent, LV_EVENT_PRESSED,
-                        reinterpret_cast<void*>(static_cast<uintptr_t>(AM6_MODE_COOL)));
+                        reinterpret_cast<void*>(static_cast<uintptr_t>(AM5_MODE_COOL)));
+    coolIconHost = makeIconHost(coolButton, 12, 12, 24, 24);
+    drawSnowflake(coolIconHost, C_CYAN_SOFT);
+    coolLabel = makeLabel(coolButton, "COOL", &lv_font_montserrat_16, C_WHITE);
+    lv_obj_align(coolLabel, LV_ALIGN_CENTER, 19, 0);
 
-    heatButton = lv_btn_create(card);
-    lv_obj_set_pos(heatButton, 100, 30);
-    lv_obj_set_size(heatButton, 84, 44);
-    styleControlButton(heatButton);
-    heatLabel = createButtonText(heatButton, "HEAT");
+    heatButton = lv_btn_create(panel);
+    lv_obj_set_pos(heatButton, 124, 34);
+    lv_obj_set_size(heatButton, 112, 50);
+    styleButton(heatButton);
     lv_obj_add_event_cb(heatButton, modeEvent, LV_EVENT_PRESSED,
-                        reinterpret_cast<void*>(static_cast<uintptr_t>(AM6_MODE_HEAT)));
+                        reinterpret_cast<void*>(static_cast<uintptr_t>(AM5_MODE_HEAT)));
+    heatIconHost = makeIconHost(heatButton, 14, 12, 24, 24);
+    drawHeat(heatIconHost, C_GREEN_1);
+    heatLabel = makeLabel(heatButton, "HEAT", &lv_font_montserrat_16, C_WHITE);
+    lv_obj_align(heatLabel, LV_ALIGN_CENTER, 19, 0);
 }
 
-void createFanCard(lv_obj_t* parent) {
-    lv_obj_t* card = createCard(parent, 120, 136, 192, 96);
+void createFanButton(lv_obj_t* panel,
+                     lv_obj_t** button,
+                     lv_obj_t** iconHost,
+                     lv_obj_t** label,
+                     int x,
+                     int w,
+                     const char* text,
+                     const lv_font_t* font,
+                     uint8_t value) {
+    *button = lv_btn_create(panel);
+    lv_obj_set_pos(*button, x, 34);
+    lv_obj_set_size(*button, w, 50);
+    styleButton(*button);
+    lv_obj_add_event_cb(*button, fanEvent, LV_EVENT_PRESSED,
+                        reinterpret_cast<void*>(static_cast<uintptr_t>(value)));
 
-    lv_obj_t* title = lv_label_create(card);
-    lv_label_set_text(title, "FAN SPEED");
-    styleSectionTitle(title);
-    lv_obj_set_pos(title, 10, 8);
+    *iconHost = makeIconHost(*button, 6, 14, 20, 20);
+    drawFan(*iconHost, C_CYAN_SOFT);
 
-    struct FanDef {
-        lv_obj_t** button;
-        lv_obj_t** label;
-        int x;
-        const char* text;
-        uint8_t value;
-    } defs[] = {
-        {&lowButton, &lowLabel, 8, "LOW", AM6_FAN_LOW},
-        {&mediumButton, &mediumLabel, 68, "MED", AM6_FAN_MEDIUM},
-        {&highButton, &highLabel, 128, "HIGH", AM6_FAN_HIGH}
-    };
+    *label = makeLabel(*button, text, font, C_WHITE);
+    lv_obj_align(*label, LV_ALIGN_CENTER, 13, 0);
+}
 
-    for (const FanDef& def : defs) {
-        *def.button = lv_btn_create(card);
-        lv_obj_set_pos(*def.button, def.x, 39);
-        lv_obj_set_size(*def.button, 56, 46);
-        styleControlButton(*def.button);
-        *def.label = createButtonText(*def.button, def.text);
-        lv_obj_add_event_cb(*def.button, fanEvent, LV_EVENT_PRESSED,
-                            reinterpret_cast<void*>(static_cast<uintptr_t>(def.value)));
-    }
+void createFanPanel(lv_obj_t* parent) {
+    lv_obj_t* panel = lv_obj_create(parent);
+    lv_obj_set_pos(panel, 72, 144);
+    lv_obj_set_size(panel, 244, 92);
+    stylePanel(panel, 11);
+    makeSectionTitle(panel, "FAN SPEED", 244, 38);
+
+    createFanButton(panel, &lowButton, &lowIconHost, &lowLabel,
+                    6, 70, "LOW", &lv_font_montserrat_12, AM5_FAN_LOW);
+    createFanButton(panel, &mediumButton, &mediumIconHost, &mediumLabel,
+                    80, 84, "MEDIUM", &lv_font_montserrat_12, AM5_FAN_MEDIUM);
+    createFanButton(panel, &highButton, &highIconHost, &highLabel,
+                    168, 70, "HIGH", &lv_font_montserrat_12, AM5_FAN_HIGH);
 }
 
 void setControlEnabled(lv_obj_t* obj, bool enabled) {
@@ -392,142 +466,117 @@ void setControlEnabled(lv_obj_t* obj, bool enabled) {
     lv_obj_set_style_opa(obj, enabled ? LV_OPA_COVER : LV_OPA_60, LV_PART_MAIN);
 }
 
-void updateLinkStatus(AM6WirelessUiState linkState) {
-    const char* text = "OFFLINE";
-    uint32_t dot = C_OFF;
-    uint32_t fill = C_OFF_SOFT;
-    uint32_t border = C_OFF;
-    uint32_t textColor = C_OFF;
+void applyStatusChip(lv_obj_t* chip, lv_obj_t* label, const char* text,
+                     uint32_t fill, uint32_t border, uint32_t txt) {
+    if (!chip || !label) return;
+    lv_label_set_text(label, text);
+    lv_obj_set_style_bg_color(chip, color(fill), LV_PART_MAIN);
+    lv_obj_set_style_border_color(chip, color(border), LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, color(txt), LV_PART_MAIN);
+}
 
-    if (linkState == AM6_LINK_WAITING) {
+void updateLinkStatus(AM5WirelessUiState state) {
+    const char* text = "OFFLINE";
+    uint32_t fill = C_OFFLINE;
+    uint32_t border = C_BLUE;
+    uint32_t txt = C_WHITE;
+
+    if (state == AM5_LINK_WAITING) {
         text = "WAIT";
-        dot = C_WAIT;
-        fill = C_WAIT_SOFT;
-        border = C_WAIT;
-        textColor = C_WAIT;
-    } else if (linkState == AM6_LINK_ONLINE) {
-        text = "LINK";
-        dot = C_ON;
-        fill = C_ON_SOFT;
-        border = C_ON;
-        textColor = C_ON;
-    } else if (linkState == AM6_LINK_SYNCING) {
+        fill = 0x40330B;
+        border = C_AMBER;
+    } else if (state == AM5_LINK_ONLINE) {
+        text = "ONLINE";
+        fill = 0x083A22;
+        border = C_GREEN_1;
+    } else if (state == AM5_LINK_SYNCING) {
         text = "SYNC";
-        dot = C_SYNC;
-        fill = C_SYNC_SOFT;
-        border = C_SYNC;
-        textColor = C_SYNC;
+        fill = 0x073449;
+        border = C_CYAN;
     }
 
-    lv_label_set_text(statusLabel, text);
-    lv_obj_set_style_bg_color(statusDot, color(dot), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(statusChip, color(fill), LV_PART_MAIN);
-    lv_obj_set_style_border_color(statusChip, color(border), LV_PART_MAIN);
-    lv_obj_set_style_text_color(statusLabel, color(textColor), LV_PART_MAIN);
+    applyStatusChip(statusChip, statusLabel, text, fill, border, txt);
+    applyStatusChip(sideStatusChip, sideStatusLabel, text, fill,
+                    state == AM5_LINK_OFFLINE ? C_OFFLINE_EDGE : border, txt);
 
-    const bool controlsEnabled = (linkState == AM6_LINK_ONLINE ||
-                                  linkState == AM6_LINK_SYNCING);
-    setControlEnabled(powerButton, controlsEnabled);
-    setControlEnabled(coolButton, controlsEnabled);
-    setControlEnabled(heatButton, controlsEnabled);
-    setControlEnabled(lowButton, controlsEnabled);
-    setControlEnabled(mediumButton, controlsEnabled);
-    setControlEnabled(highButton, controlsEnabled);
+    const bool enabled = (state == AM5_LINK_ONLINE || state == AM5_LINK_SYNCING);
+    setControlEnabled(powerButton, enabled);
+    setControlEnabled(coolButton, enabled);
+    setControlEnabled(heatButton, enabled);
+    setControlEnabled(lowButton, enabled);
+    setControlEnabled(mediumButton, enabled);
+    setControlEnabled(highButton, enabled);
+}
+
+void updatePower(const AM5DisplayState& state) {
+    const bool on = state.systemPower == 1;
+    if (on) {
+        setOpaqueBg(powerButton, 0x0B4B7E, 0x061B32, LV_GRAD_DIR_VER);
+        lv_obj_set_style_border_color(powerButton, color(C_CYAN), LV_PART_MAIN);
+        lv_obj_set_style_text_color(powerIcon, color(C_CYAN), LV_PART_MAIN);
+        lv_obj_set_style_shadow_color(powerButton, color(C_BLUE), LV_PART_MAIN);
+    } else {
+        setOpaqueBg(powerButton, 0x301014, 0x120609, LV_GRAD_DIR_VER);
+        lv_obj_set_style_border_color(powerButton, color(C_RED_1), LV_PART_MAIN);
+        lv_obj_set_style_text_color(powerIcon, color(C_RED_1), LV_PART_MAIN);
+        lv_obj_set_style_shadow_color(powerButton, color(C_RED_2), LV_PART_MAIN);
+    }
 }
 
 void createDashboard() {
     dashboardScreen = lv_obj_create(nullptr);
-    baseObject(dashboardScreen);
-    lv_obj_set_style_bg_color(dashboardScreen, color(C_BG), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_color(dashboardScreen, color(C_BG_2), LV_PART_MAIN);
-    lv_obj_set_style_bg_grad_dir(dashboardScreen, LV_GRAD_DIR_VER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(dashboardScreen, 0, LV_PART_MAIN);
+    resetObject(dashboardScreen);
+    setOpaqueBg(dashboardScreen, C_BLACK, C_BLACK, LV_GRAD_DIR_NONE);
 
     createHeader(dashboardScreen);
-    createPowerCard(dashboardScreen);
-    createModeCard(dashboardScreen);
-    createFanCard(dashboardScreen);
-}
-
-void updatePower(const AM6DisplayState& state, AM6WirelessUiState linkState) {
-    const bool on = state.systemPower == 1;
-    const uint32_t accent = on ? C_ON : C_OFF;
-    const uint32_t fill = on ? C_ON_SOFT : C_OFF_SOFT;
-
-    lv_label_set_text(powerStateLabel, on ? "ON" : "OFF");
-    lv_obj_set_style_text_color(powerStateLabel, color(accent), LV_PART_MAIN);
-
-    lv_obj_set_style_bg_color(powerStatePill, color(fill), LV_PART_MAIN);
-    lv_obj_set_style_border_color(powerStatePill, color(accent), LV_PART_MAIN);
-
-    lv_obj_set_style_text_color(powerIcon, color(accent), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(powerButton, color(fill), LV_PART_MAIN);
-    lv_obj_set_style_border_color(powerButton, color(accent), LV_PART_MAIN);
-
-    const char* hint = on ? "SYSTEM ON" : "SYSTEM OFF";
-    uint32_t hintColor = accent;
-
-    if (linkState == AM6_LINK_WAITING) {
-        hint = "WAIT LINK";
-        hintColor = C_WAIT;
-    } else if (linkState == AM6_LINK_OFFLINE) {
-        hint = "OFFLINE";
-        hintColor = C_OFF;
-    } else if (linkState == AM6_LINK_SYNCING) {
-        hint = "SYNCING";
-        hintColor = C_SYNC;
-    }
-
-    lv_label_set_text(powerHintLabel, hint);
-    lv_obj_set_style_text_color(powerHintLabel, color(hintColor), LV_PART_MAIN);
+    createPowerPanel(dashboardScreen);
+    createModePanel(dashboardScreen);
+    createFanPanel(dashboardScreen);
 }
 
 void renderModel(bool force) {
     const uint32_t revision = displayStateRevision();
-    const AM6WirelessUiState linkState = wirelessLinkUiState();
+    const AM5WirelessUiState linkState = wirelessLinkUiState();
     if (!force && revision == lastRevision && linkState == lastLinkState) return;
+
     lastRevision = revision;
     lastLinkState = linkState;
 
-    const AM6DisplayState state = displayStateGet();
-    updatePower(state, linkState);
+    const AM5DisplayState state = displayStateGet();
+    updatePower(state);
     updateLinkStatus(linkState);
 
-    setButtonSelected(coolButton, coolLabel,
-                      state.mode == AM6_MODE_COOL,
-                      C_COOL, C_COOL_SOFT);
-    setButtonSelected(heatButton, heatLabel,
-                      state.mode == AM6_MODE_HEAT,
-                      C_HEAT, C_HEAT_SOFT);
-    setButtonSelected(lowButton, lowLabel,
-                      state.fanSpeed == AM6_FAN_LOW,
-                      C_FAN, C_FAN_SOFT);
-    setButtonSelected(mediumButton, mediumLabel,
-                      state.fanSpeed == AM6_FAN_MEDIUM,
-                      C_FAN, C_FAN_SOFT);
-    setButtonSelected(highButton, highLabel,
-                      state.fanSpeed == AM6_FAN_HIGH,
-                      C_FAN, C_FAN_SOFT);
+    setButtonState(coolButton, coolLabel, coolIconHost,
+                   state.mode == AM5_MODE_COOL,
+                   C_COOL_1, C_COOL_2, false);
+    setButtonState(heatButton, heatLabel, heatIconHost,
+                   state.mode == AM5_MODE_HEAT,
+                   C_GREEN_1, C_GREEN_2, false);
+    setButtonState(lowButton, lowLabel, lowIconHost,
+                   state.fanSpeed == AM5_FAN_LOW,
+                   C_COOL_1, C_COOL_2, true);
+    setButtonState(mediumButton, mediumLabel, mediumIconHost,
+                   state.fanSpeed == AM5_FAN_MEDIUM,
+                   C_GREEN_1, C_GREEN_2, true);
+    setButtonState(highButton, highLabel, highIconHost,
+                   state.fanSpeed == AM5_FAN_HIGH,
+                   C_COOL_1, C_COOL_2, true);
 }
 
 void serviceSplash() {
     if (dashboardLoaded || !splashScreen) return;
 
     const uint32_t elapsed = millis() - splashStartedMs;
-    const uint32_t bounded = elapsed > AM6_SPLASH_DURATION_MS
-                                 ? AM6_SPLASH_DURATION_MS
+    const uint32_t bounded = elapsed > AM5_SPLASH_DURATION_MS
+                                 ? AM5_SPLASH_DURATION_MS
                                  : elapsed;
-    const int value = static_cast<int>((bounded * 100UL) / AM6_SPLASH_DURATION_MS);
+    const int value = static_cast<int>((bounded * 100UL) / AM5_SPLASH_DURATION_MS);
     lv_bar_set_value(splashBar, value, LV_ANIM_OFF);
 
-    if (elapsed >= AM6_SPLASH_DURATION_MS) {
+    if (elapsed >= AM5_SPLASH_DURATION_MS) {
         dashboardLoaded = true;
         renderModel(true);
-        lv_scr_load_anim(dashboardScreen,
-                         LV_SCR_LOAD_ANIM_FADE_ON,
-                         180,
-                         0,
-                         false);
+        lv_scr_load_anim(dashboardScreen, LV_SCR_LOAD_ANIM_FADE_ON, 180, 0, false);
     }
 }
 
@@ -547,7 +596,7 @@ void uiLoop() {
     serviceSplash();
 
     if (dashboardLoaded &&
-        millis() - lastModelRefreshMs >= AM6_UI_MODEL_REFRESH_MS) {
+        millis() - lastModelRefreshMs >= AM5_UI_MODEL_REFRESH_MS) {
         lastModelRefreshMs = millis();
         renderModel(false);
     }

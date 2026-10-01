@@ -1,4 +1,4 @@
-AM6 Indoor <-> Outdoor RS485 protocol v2
+AM5 Indoor <-> Outdoor RS485 protocol v2
 =========================================
 
 Physical/link layer
@@ -9,7 +9,7 @@ Physical/link layer
 - 19200 baud, 8N1, 2-wire half duplex
 - Frame: AA 55 DEST SRC TYPE LEN PAYLOAD... CRC_LO CRC_HI
 - CRC16-CCITT: polynomial 0x1021, initial value 0xFFFF
-- Shared byte layout is defined in am6_rs485_protocol.h. Keep that file identical
+- Shared byte layout is defined in am5_rs485_protocol.h. Keep that file identical
   in the Indoor and Outdoor projects.
 
 0x30 Indoor -> Outdoor status request (LEN=3)

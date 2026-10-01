@@ -1,6 +1,6 @@
-# AM6 Display — JC2432W328 / XH-32S
+# AM5 Display — JC2432W328 / XH-32S
 
-PlatformIO firmware for the AM6 2.8-inch 320x240 landscape display.
+PlatformIO firmware for the AM5 2.8-inch 320x240 landscape display.
 
 ## Stack
 
@@ -21,15 +21,15 @@ The established dashboard layout is retained:
 - Low / Med / High fan speed on the lower right
 - Link-state chip in the header
 
-The theme is a light industrial palette: off-white/light gray background, white cards, navy header, blue/cyan control accents, green Power ON, blue Cool, and orange Heat.
+The theme is a dark industrial palette matching the supplied reference: black/navy background, cyan/blue borders, white text, blue Cool state, green Heat/fan state, and compact controls sized for the real 320x240 panel.
 
-The latest physical-panel photo confirms this ST7789 revision must run with display inversion **OFF** for the intended light palette. The project therefore defines `TFT_INVERSION_OFF` and calls `tft.invertDisplay(false)` at runtime. With inversion ON, the light gray/white palette becomes dark and cyan/blue accents are complemented toward orange/brown.
+The real hardware photo confirmed this panel must use ST7789 inversion OFF. Inversion ON complements black to white, cyan to orange/red, and green to purple. The backlight remains off until the first LVGL frame is flushed to avoid a startup flash.
 
 ## Wireless link
 
 The display connects as a Wi-Fi station to the Indoor hardware:
 
-- SSID: `AM6-AAA001`
+- SSID: `AM5-AAA001`
 - Password: `bitahomes`
 - Indoor: `192.168.4.1`
 - Display: `192.168.4.50` (static)
@@ -58,7 +58,7 @@ The UI enables controls after an authoritative state has been received from Indo
 
 Open this folder in VS Code with PlatformIO and build the `jc2432w328` environment.
 
-If changing from an older AM6 display project, run PlatformIO **Clean** or delete `.pio` before the first build so old TFT/LVGL build flags cannot remain cached.
+If changing from an older AM5 display project, run PlatformIO **Clean** or delete `.pio` before the first build so old TFT/LVGL build flags cannot remain cached.
 
 ## Display/touch pin configuration
 

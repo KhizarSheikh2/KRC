@@ -1,4 +1,4 @@
-AM6 OUTDOOR - corrected integration build
+AM5 OUTDOOR - corrected integration build
 ==========================================
 
 Hardware retained from the supplied working Outdoor project
@@ -25,7 +25,7 @@ RS485 connection
 - 19200 baud, 8N1
 - Outdoor RX GPIO16, TX GPIO17, DE/RE GPIO4
 - The Display does NOT use this RS485 bus; it communicates with Indoor by Wi-Fi/HTTP.
-- Both Indoor and Outdoor use the identical am6_rs485_protocol.h protocol-v2 contract.
+- Both Indoor and Outdoor use the identical am5_rs485_protocol.h protocol-v2 contract.
 - See RS485_PROTOCOL.txt for exact packet layouts.
 
 Important relay startup correction

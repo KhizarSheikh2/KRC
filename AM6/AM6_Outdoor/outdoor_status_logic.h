@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// AM6 Outdoor statusout values shared with the mobile app:
+// AM6 Outdoor status values shared with the mobile app:
 // 0 = Stopped
 // 1 = Running
 // 2 = High PSI
@@ -17,50 +17,70 @@ static constexpr uint8_t AM6_OUT_STATUS_LOW_PSI = 3;
 static constexpr uint8_t AM6_OUT_STATUS_POWER_FAULT = 4;
 static constexpr uint8_t AM6_OUT_STATUS_OVERLOAD_TRIPPED = 5;
 
-// switchState[] is the logical/healthy state after SWITCH_ACTIVE_LEVEL is applied:
-//   SW1 = High PSI A     SW5 = High PSI B
-//   SW2 = Low PSI A      SW6 = Low PSI B
-//   SW3 = Overload A     SW7 = Overload B
-//   SW4 = Power A        SW8 = Power B
-// A value of 1 means healthy; 0 means that protection/fault input is active.
-//
-// Required priority:
+// Each circuit is evaluated independently using the exact same priority:
 // High PSI -> Low PSI -> Power Fault -> Overload/Tripped -> Running.
-// System OFF / Outdoor disabled always reports Stopped.
-inline uint8_t computeOutdoorStatusCode(int systemPower,
-                                        int outdoorEnable,
-                                        bool switchPcfHealthy,
-                                        bool relayPcaHealthy,
-                                        bool relayPcaConfigured,
-                                        const bool switchState[8])
+// A switch value of true/1 means healthy; false/0 means that fault is active.
+inline uint8_t computeOutdoorCircuitStatusCode(int systemPower,
+                                               int outdoorEnable,
+                                               bool switchPcfHealthy,
+                                               bool relayPcaHealthy,
+                                               bool relayPcaConfigured,
+                                               bool highPsiHealthy,
+                                               bool lowPsiHealthy,
+                                               bool overloadHealthy,
+                                               bool powerHealthy)
 {
   if (systemPower != 1 || outdoorEnable != 1)
     return AM6_OUT_STATUS_STOPPED;
 
-  // If switch data cannot be trusted, do not manufacture a PSI/overload fault
-  // from stale/default switch bits. Report a hardware/power fault instead.
+  // If the switch expander is unavailable, neither circuit's protection
+  // inputs can be trusted. Report Power Fault for both circuits.
   if (!switchPcfHealthy)
     return AM6_OUT_STATUS_POWER_FAULT;
 
-  // Priority 1: High PSI on either circuit.
-  if (!switchState[0] || !switchState[4])
+  if (!highPsiHealthy)
     return AM6_OUT_STATUS_HIGH_PSI;
 
-  // Priority 2: Low PSI on either circuit.
-  if (!switchState[1] || !switchState[5])
+  if (!lowPsiHealthy)
     return AM6_OUT_STATUS_LOW_PSI;
 
-  // Priority 3: Power fault on either circuit. A failed relay output expander
-  // is also a power/control fault because commanded relay state cannot be trusted.
-  if (!switchState[3] || !switchState[7] ||
-      !relayPcaHealthy || !relayPcaConfigured)
+  // Relay output-expander failure is also a Power Fault because the
+  // compressor/condensor pair cannot be controlled reliably.
+  if (!powerHealthy || !relayPcaHealthy || !relayPcaConfigured)
     return AM6_OUT_STATUS_POWER_FAULT;
 
-  // Priority 4: Overload / Tripped on either circuit.
-  if (!switchState[2] || !switchState[6])
+  if (!overloadHealthy)
     return AM6_OUT_STATUS_OVERLOAD_TRIPPED;
 
   return AM6_OUT_STATUS_RUNNING;
+}
+
+inline uint8_t computeOutdoorStatusA(int systemPower,
+                                     int outdoorEnable,
+                                     bool switchPcfHealthy,
+                                     bool relayPcaHealthy,
+                                     bool relayPcaConfigured,
+                                     const bool switchState[8])
+{
+  // Circuit A: SW1 High PSI, SW2 Low PSI, SW3 Overload, SW4 Power.
+  return computeOutdoorCircuitStatusCode(systemPower, outdoorEnable,
+                                         switchPcfHealthy, relayPcaHealthy, relayPcaConfigured,
+                                         switchState[0], switchState[1],
+                                         switchState[2], switchState[3]);
+}
+
+inline uint8_t computeOutdoorStatusB(int systemPower,
+                                     int outdoorEnable,
+                                     bool switchPcfHealthy,
+                                     bool relayPcaHealthy,
+                                     bool relayPcaConfigured,
+                                     const bool switchState[8])
+{
+  // Circuit B: SW5 High PSI, SW6 Low PSI, SW7 Overload, SW8 Power.
+  return computeOutdoorCircuitStatusCode(systemPower, outdoorEnable,
+                                         switchPcfHealthy, relayPcaHealthy, relayPcaConfigured,
+                                         switchState[4], switchState[5],
+                                         switchState[6], switchState[7]);
 }
 
 inline const char* outdoorStatusText(uint8_t status)

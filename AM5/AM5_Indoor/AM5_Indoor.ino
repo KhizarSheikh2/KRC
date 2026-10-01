@@ -150,7 +150,7 @@ void setup() {
   sensors.begin();
   sensors.setWaitForConversion(false);
 
-  Serial.println("\nBooting AM6 Indoor MASTER...");
+  Serial.println("\nBooting AM5 Indoor MASTER...");
   Serial.print("Device Name: ");
   Serial.println(devicename);
   Serial.print("[PINS] DS18B20=");
@@ -192,7 +192,7 @@ void setup() {
 }
 
 void loop() {
-  // Actively recover the router/STA link without tearing down the local AM6 AP.
+  // Actively recover the router/STA link without tearing down the local AM5 AP.
   serviceWiFiRecovery();
 
   // Keep network status synchronized for app diagnostics.

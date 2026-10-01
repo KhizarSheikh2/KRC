@@ -86,7 +86,7 @@ void setup()
 
   Serial.println();
   Serial.println("=========================================================");
-  Serial.println(" AM6 OUTDOOR FINAL - PCF8574 SWITCH + PCA9554 RELAY + INDOOR RS485");
+  Serial.println(" AM5 OUTDOOR FINAL - PCF8574 SWITCH + PCA9554 RELAY + INDOOR RS485");
   Serial.println("=========================================================");
   Serial.println("[BOOT] Serial Monitor = 115200 baud");
   Serial.println("[BOOT] Starting hardware initialization...");

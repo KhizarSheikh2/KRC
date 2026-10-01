@@ -1,13 +1,13 @@
-#ifndef AM6_RS485_H
-#define AM6_RS485_H
+#ifndef AM5_RS485_H
+#define AM5_RS485_H
 
 #include <Arduino.h>
 #include <limits.h>
 #include <math.h>
-#include "am6_rs485_protocol.h"
+#include "am5_rs485_protocol.h"
 
 // =====================================================
-// AM6 TWO-NODE RS485 PROTOCOL
+// AM5 TWO-NODE RS485 PROTOCOL
 // Indoor  0x01 = ONLY MASTER
 // Outdoor 0x02 = ONLY SLAVE
 // Display is NOT present on this RS485 bus.
@@ -15,7 +15,7 @@
 // CRC16-CCITT poly 0x1021, init 0xFFFF
 // =====================================================
 
-HardwareSerial AM6_RS485(2);
+HardwareSerial AM5_RS485(2);
 
 static const uint8_t RS485_SOF_1 = 0xAA;
 static const uint8_t RS485_SOF_2 = 0x55;
@@ -88,7 +88,7 @@ inline void rs485ResetParser() {
 }
 
 inline void rs485ClearStaleRx() {
-  while (AM6_RS485.available() > 0) AM6_RS485.read();
+  while (AM5_RS485.available() > 0) AM5_RS485.read();
   rs485ResetParser();
 }
 
@@ -110,16 +110,16 @@ inline void rs485SendFrame(uint8_t destination, uint8_t type,
   rs485SetTransmit(true);
   delayMicroseconds(150);
 
-  AM6_RS485.write(RS485_SOF_1);
-  AM6_RS485.write(RS485_SOF_2);
-  AM6_RS485.write(destination);
-  AM6_RS485.write(RS485_ADDR_INDOOR);
-  AM6_RS485.write(type);
-  AM6_RS485.write(length);
-  if (length > 0 && payload != nullptr) AM6_RS485.write(payload, length);
-  AM6_RS485.write(static_cast<uint8_t>(crc & 0xFF));
-  AM6_RS485.write(static_cast<uint8_t>((crc >> 8) & 0xFF));
-  AM6_RS485.flush();
+  AM5_RS485.write(RS485_SOF_1);
+  AM5_RS485.write(RS485_SOF_2);
+  AM5_RS485.write(destination);
+  AM5_RS485.write(RS485_ADDR_INDOOR);
+  AM5_RS485.write(type);
+  AM5_RS485.write(length);
+  if (length > 0 && payload != nullptr) AM5_RS485.write(payload, length);
+  AM5_RS485.write(static_cast<uint8_t>(crc & 0xFF));
+  AM5_RS485.write(static_cast<uint8_t>((crc >> 8) & 0xFF));
+  AM5_RS485.flush();
 
   delayMicroseconds(150);
   rs485SetTransmit(false);
@@ -150,10 +150,10 @@ inline void rs485PutInt16LE(uint8_t* buffer, uint8_t index, int16_t value) {
 // [0] version, [1] system_power, [2] outdoorsw
 // =====================================================
 inline void rs485BeginOutdoorStatusTransaction() {
-  uint8_t payload[AM6_RS485_STATUS_REQUEST_LEN] = {0};
-  payload[AM6_RS485_STATUS_REQ_VERSION] = AM6_RS485_PROTOCOL_VERSION;
-  payload[AM6_RS485_STATUS_REQ_SYSTEM_POWER] = static_cast<uint8_t>(system_power == 1 ? 1 : 0);
-  payload[AM6_RS485_STATUS_REQ_OUTDOOR_ENABLE] = static_cast<uint8_t>(outdoor_sw == 1 ? 1 : 0);
+  uint8_t payload[AM5_RS485_STATUS_REQUEST_LEN] = {0};
+  payload[AM5_RS485_STATUS_REQ_VERSION] = AM5_RS485_PROTOCOL_VERSION;
+  payload[AM5_RS485_STATUS_REQ_SYSTEM_POWER] = static_cast<uint8_t>(system_power == 1 ? 1 : 0);
+  payload[AM5_RS485_STATUS_REQ_OUTDOOR_ENABLE] = static_cast<uint8_t>(outdoor_sw == 1 ? 1 : 0);
 
   rs485ClearStaleRx();
   rs485SendFrame(RS485_ADDR_OUTDOOR,
@@ -184,8 +184,8 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   if (rs485MasterTransaction != RS485_TXN_WAIT_OUTDOOR_STATUS) return;
   rs485MasterTransaction = RS485_TXN_IDLE;
 
-  if (frame.len != AM6_RS485_STATUS_RESPONSE_LEN ||
-      frame.payload[AM6_RS485_STATUS_VERSION] != AM6_RS485_PROTOCOL_VERSION) {
+  if (frame.len != AM5_RS485_STATUS_RESPONSE_LEN ||
+      frame.payload[AM5_RS485_STATUS_VERSION] != AM5_RS485_PROTOCOL_VERSION) {
     Serial.println("[RS485] Invalid Outdoor status payload");
     return;
   }
@@ -204,21 +204,21 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   rs485_outdoor_online = true;
   rs485_outdoor_last_seen_ms = millis();
 
-  outdoorPowerEcho = (frame.payload[AM6_RS485_STATUS_SYSTEM_POWER] == 1) ? 1 : 0;
-  outdoorEnableEcho = (frame.payload[AM6_RS485_STATUS_OUTDOOR_ENABLE] == 1) ? 1 : 0;
-  outdoorEffectivePower = (frame.payload[AM6_RS485_STATUS_EFFECTIVE_POWER] == 1) ? 1 : 0;
-  outdoorStatusCode = (frame.payload[AM6_RS485_STATUS_CODE] <= static_cast<uint8_t>(OUT_STATUS_OVERLOAD_TRIPPED))
-                        ? static_cast<int>(frame.payload[AM6_RS485_STATUS_CODE])
+  outdoorPowerEcho = (frame.payload[AM5_RS485_STATUS_SYSTEM_POWER] == 1) ? 1 : 0;
+  outdoorEnableEcho = (frame.payload[AM5_RS485_STATUS_OUTDOOR_ENABLE] == 1) ? 1 : 0;
+  outdoorEffectivePower = (frame.payload[AM5_RS485_STATUS_EFFECTIVE_POWER] == 1) ? 1 : 0;
+  outdoorStatusCode = (frame.payload[AM5_RS485_STATUS_CODE] <= static_cast<uint8_t>(OUT_STATUS_OVERLOAD_TRIPPED))
+                        ? static_cast<int>(frame.payload[AM5_RS485_STATUS_CODE])
                         : static_cast<int>(OUT_STATUS_STOPPED);
 
-  const uint8_t roleValidMask = frame.payload[AM6_RS485_STATUS_ROLE_VALID_MASK];
-  const uint8_t physicalValidMask = frame.payload[AM6_RS485_STATUS_PHYSICAL_VALID_MASK];
+  const uint8_t roleValidMask = frame.payload[AM5_RS485_STATUS_ROLE_VALID_MASK];
+  const uint8_t physicalValidMask = frame.payload[AM5_RS485_STATUS_PHYSICAL_VALID_MASK];
 
   for (uint8_t i = 0; i < OUTDOOR_SENSOR_COUNT; i++) {
     outdoorRoleTempValid[i] = (roleValidMask & (1U << i)) != 0;
     if (outdoorRoleTempValid[i]) {
       outdoorRoleTempC[i] = static_cast<float>(
-        rs485GetInt16LE(frame.payload, static_cast<uint8_t>(AM6_RS485_STATUS_ROLE_TEMP_BASE + i * 2))) / 10.0f;
+        rs485GetInt16LE(frame.payload, static_cast<uint8_t>(AM5_RS485_STATUS_ROLE_TEMP_BASE + i * 2))) / 10.0f;
     }
     else {
       outdoorRoleTempC[i] = SENSOR_DISCONNECTED;
@@ -226,23 +226,23 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
 
     if ((physicalValidMask & (1U << i)) != 0) {
       outdoorSensorPhysicalTempC[i] = static_cast<float>(
-        rs485GetInt16LE(frame.payload, static_cast<uint8_t>(AM6_RS485_STATUS_PHYSICAL_TEMP_BASE + i * 2))) / 10.0f;
+        rs485GetInt16LE(frame.payload, static_cast<uint8_t>(AM5_RS485_STATUS_PHYSICAL_TEMP_BASE + i * 2))) / 10.0f;
     }
     else {
       outdoorSensorPhysicalTempC[i] = SENSOR_DISCONNECTED;
     }
   }
 
-  outdoorR1 = frame.payload[AM6_RS485_STATUS_RELAY_BASE + 0] == 1;
-  outdoorR2 = frame.payload[AM6_RS485_STATUS_RELAY_BASE + 1] == 1;
-  outdoorR3 = frame.payload[AM6_RS485_STATUS_RELAY_BASE + 2] == 1;
-  outdoorR4 = frame.payload[AM6_RS485_STATUS_RELAY_BASE + 3] == 1;
-  outdoorSwitchPcfHealthy = frame.payload[AM6_RS485_STATUS_SWITCH_PCF_HEALTHY] == 1;
-  outdoorRelayPcfHealthy = frame.payload[AM6_RS485_STATUS_RELAY_PCA_HEALTHY] == 1;
+  outdoorR1 = frame.payload[AM5_RS485_STATUS_RELAY_BASE + 0] == 1;
+  outdoorR2 = frame.payload[AM5_RS485_STATUS_RELAY_BASE + 1] == 1;
+  outdoorR3 = frame.payload[AM5_RS485_STATUS_RELAY_BASE + 2] == 1;
+  outdoorR4 = frame.payload[AM5_RS485_STATUS_RELAY_BASE + 3] == 1;
+  outdoorSwitchPcfHealthy = frame.payload[AM5_RS485_STATUS_SWITCH_PCF_HEALTHY] == 1;
+  outdoorRelayPcfHealthy = frame.payload[AM5_RS485_STATUS_RELAY_PCA_HEALTHY] == 1;
   outdoorPcfHealthy = outdoorSwitchPcfHealthy && outdoorRelayPcfHealthy;
 
   for (uint8_t i = 0; i < 8; i++) {
-    outdoorSwitchState[i] = frame.payload[AM6_RS485_STATUS_SWITCH_BASE + i] == 1;
+    outdoorSwitchState[i] = frame.payload[AM5_RS485_STATUS_SWITCH_BASE + i] == 1;
   }
 
   bool outdoorStateChanged = !previousOutdoorOnline ||
@@ -319,11 +319,11 @@ inline void rs485BeginOutdoorConfigSetTransaction() {
   if (outdoorConfigQueueCount == 0) return;
 
   // Payload: version + ROM[8] + role + offset int16 x0.01 C = 12 bytes.
-  uint8_t payload[AM6_RS485_CONFIG_SET_LEN] = {0};
-  payload[AM6_RS485_CONFIG_SET_VERSION] = AM6_RS485_PROTOCOL_VERSION;
-  memcpy(&payload[AM6_RS485_CONFIG_SET_ROM_BASE], outdoorConfigQueue[0].address, 8);
-  payload[AM6_RS485_CONFIG_SET_ROLE] = outdoorConfigQueue[0].role;
-  rs485PutInt16LE(payload, AM6_RS485_CONFIG_SET_OFFSET_BASE,
+  uint8_t payload[AM5_RS485_CONFIG_SET_LEN] = {0};
+  payload[AM5_RS485_CONFIG_SET_VERSION] = AM5_RS485_PROTOCOL_VERSION;
+  memcpy(&payload[AM5_RS485_CONFIG_SET_ROM_BASE], outdoorConfigQueue[0].address, 8);
+  payload[AM5_RS485_CONFIG_SET_ROLE] = outdoorConfigQueue[0].role;
+  rs485PutInt16LE(payload, AM5_RS485_CONFIG_SET_OFFSET_BASE,
                   rs485EncodeOffset(outdoorConfigQueue[0].offset));
 
   rs485ClearStaleRx();
@@ -336,7 +336,7 @@ inline void rs485BeginOutdoorConfigSetTransaction() {
 }
 
 inline void rs485BeginOutdoorConfigSnapshotTransaction() {
-  const uint8_t payload[AM6_RS485_CONFIG_REQUEST_LEN] = {AM6_RS485_PROTOCOL_VERSION};
+  const uint8_t payload[AM5_RS485_CONFIG_REQUEST_LEN] = {AM5_RS485_PROTOCOL_VERSION};
   rs485ClearStaleRx();
   rs485SendFrame(RS485_ADDR_OUTDOOR,
                  RS485_MSG_OUTDOOR_CONFIG_REQUEST,
@@ -352,8 +352,8 @@ inline void rs485HandleOutdoorConfigAck(const RS485RxFrame& frame) {
   if (rs485MasterTransaction != RS485_TXN_WAIT_OUTDOOR_CONFIG_ACK) return;
   rs485MasterTransaction = RS485_TXN_IDLE;
 
-  if (frame.len != AM6_RS485_CONFIG_ACK_LEN ||
-      frame.payload[AM6_RS485_CONFIG_ACK_VERSION] != AM6_RS485_PROTOCOL_VERSION) {
+  if (frame.len != AM5_RS485_CONFIG_ACK_LEN ||
+      frame.payload[AM5_RS485_CONFIG_ACK_VERSION] != AM5_RS485_PROTOCOL_VERSION) {
     Serial.println("[RS485] Invalid Outdoor config ACK");
     if (outdoorConfigQueueCount > 0) {
       if (outdoorConfigQueue[0].retries < 2) outdoorConfigQueue[0].retries++;
@@ -365,7 +365,7 @@ inline void rs485HandleOutdoorConfigAck(const RS485RxFrame& frame) {
   rs485_outdoor_online = true;
   rs485_outdoor_last_seen_ms = millis();
 
-  if (frame.payload[AM6_RS485_CONFIG_ACK_SUCCESS] == 1) {
+  if (frame.payload[AM5_RS485_CONFIG_ACK_SUCCESS] == 1) {
     rs485PopOutdoorConfigQueue();
     // Do not republish the stale pre-change snapshot. Request a fresh snapshot
     // first; rs485HandleOutdoorConfigSnapshot() will trigger the MQTT publish.
@@ -385,12 +385,12 @@ inline void rs485HandleOutdoorConfigSnapshot(const RS485RxFrame& frame) {
 
   // B2 payload: version, count, count * 13-byte records.
   // record = address[8], role, offset int16 x0.01 C, raw temp int16 x0.1 C
-  if (frame.len < AM6_RS485_CONFIG_SNAPSHOT_HEADER_LEN ||
-      frame.payload[AM6_RS485_CONFIG_SNAPSHOT_VERSION] != AM6_RS485_PROTOCOL_VERSION) return;
+  if (frame.len < AM5_RS485_CONFIG_SNAPSHOT_HEADER_LEN ||
+      frame.payload[AM5_RS485_CONFIG_SNAPSHOT_VERSION] != AM5_RS485_PROTOCOL_VERSION) return;
 
-  const uint8_t count = frame.payload[AM6_RS485_CONFIG_SNAPSHOT_COUNT];
+  const uint8_t count = frame.payload[AM5_RS485_CONFIG_SNAPSHOT_COUNT];
   const uint8_t expectedLength = static_cast<uint8_t>(
-    AM6_RS485_CONFIG_SNAPSHOT_HEADER_LEN + count * AM6_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
+    AM5_RS485_CONFIG_SNAPSHOT_HEADER_LEN + count * AM5_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
   if (count > OUTDOOR_SENSOR_COUNT || frame.len != expectedLength) {
     Serial.println("[RS485] Invalid Outdoor config snapshot length");
     return;
@@ -409,17 +409,17 @@ inline void rs485HandleOutdoorConfigSnapshot(const RS485RxFrame& frame) {
 
   for (uint8_t i = 0; i < count; i++) {
     const uint8_t base = static_cast<uint8_t>(
-      AM6_RS485_CONFIG_SNAPSHOT_HEADER_LEN + i * AM6_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
+      AM5_RS485_CONFIG_SNAPSHOT_HEADER_LEN + i * AM5_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
     memcpy(outdoorSensorAddresses[i],
-           &frame.payload[base + AM6_RS485_CONFIG_RECORD_ROM_BASE], 8);
+           &frame.payload[base + AM5_RS485_CONFIG_RECORD_ROM_BASE], 8);
     outdoorSensorPresent[i] = true;
-    outdoorSensorRole[i] = frame.payload[base + AM6_RS485_CONFIG_RECORD_ROLE];
+    outdoorSensorRole[i] = frame.payload[base + AM5_RS485_CONFIG_RECORD_ROLE];
     outdoorSensorOffset[i] = static_cast<float>(
       rs485GetInt16LE(frame.payload,
-                      static_cast<uint8_t>(base + AM6_RS485_CONFIG_RECORD_OFFSET_BASE))) / 100.0f;
+                      static_cast<uint8_t>(base + AM5_RS485_CONFIG_RECORD_OFFSET_BASE))) / 100.0f;
 
     const int16_t raw = rs485GetInt16LE(
-      frame.payload, static_cast<uint8_t>(base + AM6_RS485_CONFIG_RECORD_TEMP_BASE));
+      frame.payload, static_cast<uint8_t>(base + AM5_RS485_CONFIG_RECORD_TEMP_BASE));
     outdoorSensorRawTempC[i] = (raw == 8880)
                                 ? SENSOR_DISCONNECTED
                                 : static_cast<float>(raw) / 10.0f;
@@ -588,8 +588,8 @@ inline void rs485Loop() {
     rs485ResetParser();
   }
 
-  while (AM6_RS485.available() > 0) {
-    rs485ConsumeByte(static_cast<uint8_t>(AM6_RS485.read()));
+  while (AM5_RS485.available() > 0) {
+    rs485ConsumeByte(static_cast<uint8_t>(AM5_RS485.read()));
   }
 
   rs485HandleTransactionTimeout();
@@ -599,7 +599,7 @@ inline void rs485Loop() {
 inline void rs485Init() {
   pinMode(RS485_DE_RE_PIN, OUTPUT);
   rs485SetTransmit(false);
-  AM6_RS485.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+  AM5_RS485.begin(RS485_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
 
   rs485ResetParser();
   rs485MasterTransaction = RS485_TXN_IDLE;
@@ -609,7 +609,7 @@ inline void rs485Init() {
   rs485_outdoor_config_snapshot_requested = true;
   rs485_outdoor_config_last_request_ms = 0;
 
-  Serial.println("[RS485] AM6 two-node bus initialized");
+  Serial.println("[RS485] AM5 two-node bus initialized");
   Serial.printf("[RS485] Indoor MASTER=0x%02X Outdoor SLAVE=0x%02X Baud=%lu\n",
                 RS485_ADDR_INDOOR, RS485_ADDR_OUTDOOR, RS485_BAUD);
 }

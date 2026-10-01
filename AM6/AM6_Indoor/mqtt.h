@@ -116,6 +116,16 @@ inline int effectiveOutdoorStatusForPublish() {
   return outdoorStatusCode;
 }
 
+inline int effectiveOutdoorStatusBForPublish() {
+  if (system_power == 0 || outdoor_sw == 0) return OUT_STATUS_STOPPED;
+  if (!rs485_outdoor_online) return OUT_STATUS_POWER_FAULT;
+  if (outdoorStatusCodeB < OUT_STATUS_STOPPED ||
+      outdoorStatusCodeB > OUT_STATUS_OVERLOAD_TRIPPED) {
+    return OUT_STATUS_STOPPED;
+  }
+  return outdoorStatusCodeB;
+}
+
 inline void publishDocument(const String& topic,
                             const StaticJsonDocument<4096>& doc,
                             bool retained = true) {
@@ -146,7 +156,8 @@ void publishMainStatus() {
   doc["fanSw"] = fanSpeedToMqttFanSw();
   doc["indoorsw"] = indoor_sw;
   doc["outdoorsw"] = outdoor_sw;
-  doc["statusout"] = effectiveOutdoorStatusForPublish();
+  doc["statusout"] = effectiveOutdoorStatusForPublish();   // Circuit A
+  doc["statusoutB"] = effectiveOutdoorStatusBForPublish(); // Circuit B
   doc["supply"] = appTemperatureValue(SupplyTempC);
   doc["setPoint"] = appTemperatureValue(setPoint);
   doc["return"] = appTemperatureValue(ReturnTempC);

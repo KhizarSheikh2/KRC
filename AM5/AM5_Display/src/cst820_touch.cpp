@@ -10,10 +10,10 @@ constexpr uint8_t ADDRESS_CANDIDATES[] = {0x15, 0x14, 0x2E, 0x38};
 void CST820Touch::resetController() {
     // Match the vendor CST820 reset sequence used by working JC2432W328C
     // examples: hold RESET low briefly, then release high and wait for boot.
-    pinMode(AM6_TOUCH_RST, OUTPUT);
-    digitalWrite(AM6_TOUCH_RST, LOW);
+    pinMode(AM5_TOUCH_RST, OUTPUT);
+    digitalWrite(AM5_TOUCH_RST, LOW);
     delay(10);
-    digitalWrite(AM6_TOUCH_RST, HIGH);
+    digitalWrite(AM5_TOUCH_RST, HIGH);
     delay(300);
 }
 
@@ -23,7 +23,7 @@ bool CST820Touch::probe(uint8_t address) {
 }
 
 bool CST820Touch::begin() {
-    Wire.begin(AM6_TOUCH_SDA, AM6_TOUCH_SCL, AM6_TOUCH_I2C_HZ);
+    Wire.begin(AM5_TOUCH_SDA, AM5_TOUCH_SCL, AM5_TOUCH_I2C_HZ);
     Wire.setTimeOut(20);
     resetController();
 
@@ -50,7 +50,7 @@ bool CST820Touch::begin() {
     Serial.print("[TOUCH] CST820 detected at 0x");
     Serial.print(address_, HEX);
     Serial.print(" | I2C=");
-    Serial.print(AM6_TOUCH_I2C_HZ);
+    Serial.print(AM5_TOUCH_I2C_HZ);
     Serial.println(" Hz");
     return true;
 }
@@ -58,7 +58,7 @@ bool CST820Touch::begin() {
 bool CST820Touch::writeRegister(uint8_t reg, uint8_t value) {
     if (address_ == 0) return false;
 
-    for (uint8_t attempt = 0; attempt < AM6_TOUCH_READ_RETRIES; ++attempt) {
+    for (uint8_t attempt = 0; attempt < AM5_TOUCH_READ_RETRIES; ++attempt) {
         Wire.beginTransmission(address_);
         Wire.write(reg);
         Wire.write(value);
@@ -77,7 +77,7 @@ bool CST820Touch::readRegisters(uint8_t reg, uint8_t* data, size_t length) {
         return false;
     }
 
-    for (uint8_t attempt = 0; attempt < AM6_TOUCH_READ_RETRIES; ++attempt) {
+    for (uint8_t attempt = 0; attempt < AM5_TOUCH_READ_RETRIES; ++attempt) {
         Wire.beginTransmission(address_);
         Wire.write(reg);
 
@@ -113,21 +113,21 @@ void CST820Touch::transformToLandscape(uint16_t rawX,
         return static_cast<uint16_t>(value);
     };
 
-#if AM6_DISPLAY_ROTATION == 1
+#if AM5_DISPLAY_ROTATION == 1
     // Native portrait: 240 x 320. Landscape rotation 1 is equivalent to
     // swap_xy + mirror_y.
-    x = (rawY >= AM6_SCREEN_WIDTH)
-            ? static_cast<uint16_t>(AM6_SCREEN_WIDTH - 1)
+    x = (rawY >= AM5_SCREEN_WIDTH)
+            ? static_cast<uint16_t>(AM5_SCREEN_WIDTH - 1)
             : rawY;
     y = clampSigned(239 - static_cast<int32_t>(rawX),
-                    static_cast<uint16_t>(AM6_SCREEN_HEIGHT - 1));
-#elif AM6_DISPLAY_ROTATION == 3
+                    static_cast<uint16_t>(AM5_SCREEN_HEIGHT - 1));
+#elif AM5_DISPLAY_ROTATION == 3
     x = clampSigned(319 - static_cast<int32_t>(rawY),
-                    static_cast<uint16_t>(AM6_SCREEN_WIDTH - 1));
-    y = (rawX >= AM6_SCREEN_HEIGHT)
-            ? static_cast<uint16_t>(AM6_SCREEN_HEIGHT - 1)
+                    static_cast<uint16_t>(AM5_SCREEN_WIDTH - 1));
+    y = (rawX >= AM5_SCREEN_HEIGHT)
+            ? static_cast<uint16_t>(AM5_SCREEN_HEIGHT - 1)
             : rawX;
-#elif AM6_DISPLAY_ROTATION == 2
+#elif AM5_DISPLAY_ROTATION == 2
     x = clampSigned(239 - static_cast<int32_t>(rawX), 239);
     y = clampSigned(319 - static_cast<int32_t>(rawY), 319);
 #else

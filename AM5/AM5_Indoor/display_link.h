@@ -1,5 +1,5 @@
-#ifndef AM6_DISPLAY_LINK_H
-#define AM6_DISPLAY_LINK_H
+#ifndef AM5_DISPLAY_LINK_H
+#define AM5_DISPLAY_LINK_H
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -9,7 +9,7 @@
 #include <math.h>
 
 // ============================================================
-// AM6 INDOOR <-> DISPLAY WI-FI / HTTP LINK
+// AM5 INDOOR <-> DISPLAY WI-FI / HTTP LINK
 // Indoor remains the authoritative controller.
 //
 // Indoor SoftAP : 192.168.4.1
@@ -19,16 +19,16 @@
 // Indoor  -> Display: POST http://192.168.4.50/receive
 // ============================================================
 
-static const char* AM6_DISPLAY_IP = "192.168.4.50";
-static const char* AM6_DISPLAY_RECEIVE_PATH = "/receive";
-static const char* AM6_INDOOR_DISPLAY_RX_PATH = "/from_display";
-static const uint32_t AM6_DISPLAY_PUSH_INTERVAL_MS = 5000UL;
-static const uint32_t AM6_DISPLAY_OFFLINE_RETRY_MS = 5000UL;
-static const uint32_t AM6_DISPLAY_HTTP_CONNECT_TIMEOUT_MS = 300UL;
-static const uint32_t AM6_DISPLAY_HTTP_TIMEOUT_MS = 600UL;
-static const size_t AM6_DISPLAY_MAX_BODY_BYTES = 512U;
+static const char* AM5_DISPLAY_IP = "192.168.4.50";
+static const char* AM5_DISPLAY_RECEIVE_PATH = "/receive";
+static const char* AM5_INDOOR_DISPLAY_RX_PATH = "/from_display";
+static const uint32_t AM5_DISPLAY_PUSH_INTERVAL_MS = 5000UL;
+static const uint32_t AM5_DISPLAY_OFFLINE_RETRY_MS = 5000UL;
+static const uint32_t AM5_DISPLAY_HTTP_CONNECT_TIMEOUT_MS = 300UL;
+static const uint32_t AM5_DISPLAY_HTTP_TIMEOUT_MS = 600UL;
+static const size_t AM5_DISPLAY_MAX_BODY_BYTES = 512U;
 
-struct AM6DisplayPendingCommand {
+struct AM5DisplayPendingCommand {
   bool hasPower = false;
   int power = 0;
   bool hasFan = false;
@@ -39,21 +39,21 @@ struct AM6DisplayPendingCommand {
   float setPointValue = 22.0f;
 };
 
-static portMUX_TYPE am6DisplayCommandMux = portMUX_INITIALIZER_UNLOCKED;
-static AM6DisplayPendingCommand am6DisplayPendingCommand;
-static bool am6DisplayCommandPending = false;
-static unsigned long am6DisplayLastPushMs = 0;
-static unsigned long am6DisplayLastSuccessMs = 0;
-static unsigned long am6DisplayNextAttemptMs = 0;
-static bool am6DisplayOnline = false;
-static bool am6DisplayForcePush = true;
-static int am6DisplayLastPower = -1;
-static int am6DisplayLastFanSw = -1;
-static int am6DisplayLastMode = -1;
-static int am6DisplayLastIndoorSw = -1;
-static int am6DisplayLastOutdoorSw = -1;
-static float am6DisplayLastSetPoint = NAN;
-static int am6DisplayLastStatusOut = -1;
+static portMUX_TYPE am5DisplayCommandMux = portMUX_INITIALIZER_UNLOCKED;
+static AM5DisplayPendingCommand am5DisplayPendingCommand;
+static bool am5DisplayCommandPending = false;
+static unsigned long am5DisplayLastPushMs = 0;
+static unsigned long am5DisplayLastSuccessMs = 0;
+static unsigned long am5DisplayNextAttemptMs = 0;
+static bool am5DisplayOnline = false;
+static bool am5DisplayForcePush = true;
+static int am5DisplayLastPower = -1;
+static int am5DisplayLastFanSw = -1;
+static int am5DisplayLastMode = -1;
+static int am5DisplayLastIndoorSw = -1;
+static int am5DisplayLastOutdoorSw = -1;
+static float am5DisplayLastSetPoint = NAN;
+static int am5DisplayLastStatusOut = -1;
 
 inline void displayLinkAddCorsHeaders(AsyncWebServerResponse* response) {
   if (!response) return;
@@ -62,32 +62,32 @@ inline void displayLinkAddCorsHeaders(AsyncWebServerResponse* response) {
   response->addHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-inline void displayLinkQueueCommand(const AM6DisplayPendingCommand& incoming) {
-  portENTER_CRITICAL(&am6DisplayCommandMux);
+inline void displayLinkQueueCommand(const AM5DisplayPendingCommand& incoming) {
+  portENTER_CRITICAL(&am5DisplayCommandMux);
 
   if (incoming.hasPower) {
-    am6DisplayPendingCommand.hasPower = true;
-    am6DisplayPendingCommand.power = incoming.power;
+    am5DisplayPendingCommand.hasPower = true;
+    am5DisplayPendingCommand.power = incoming.power;
   }
   if (incoming.hasFan) {
-    am6DisplayPendingCommand.hasFan = true;
-    am6DisplayPendingCommand.fanSpeed = incoming.fanSpeed;
+    am5DisplayPendingCommand.hasFan = true;
+    am5DisplayPendingCommand.fanSpeed = incoming.fanSpeed;
   }
   if (incoming.hasMode) {
-    am6DisplayPendingCommand.hasMode = true;
-    am6DisplayPendingCommand.mode = incoming.mode;
+    am5DisplayPendingCommand.hasMode = true;
+    am5DisplayPendingCommand.mode = incoming.mode;
   }
   if (incoming.hasSetPoint) {
-    am6DisplayPendingCommand.hasSetPoint = true;
-    am6DisplayPendingCommand.setPointValue = incoming.setPointValue;
+    am5DisplayPendingCommand.hasSetPoint = true;
+    am5DisplayPendingCommand.setPointValue = incoming.setPointValue;
   }
 
-  am6DisplayCommandPending = true;
-  portEXIT_CRITICAL(&am6DisplayCommandMux);
+  am5DisplayCommandPending = true;
+  portEXIT_CRITICAL(&am5DisplayCommandMux);
 }
 
 inline bool displayLinkParseIncomingJson(const String& body,
-                                         AM6DisplayPendingCommand& command) {
+                                         AM5DisplayPendingCommand& command) {
   StaticJsonDocument<512> doc;
   const DeserializationError error = deserializeJson(doc, body);
   if (error) {
@@ -134,7 +134,7 @@ inline bool displayLinkParseIncomingJson(const String& body,
 }
 
 inline void displayLinkRegisterServerEndpoints() {
-  server.on(AM6_INDOOR_DISPLAY_RX_PATH, HTTP_OPTIONS,
+  server.on(AM5_INDOOR_DISPLAY_RX_PATH, HTTP_OPTIONS,
             [](AsyncWebServerRequest* request) {
     AsyncWebServerResponse* response = request->beginResponse(200);
     displayLinkAddCorsHeaders(response);
@@ -142,7 +142,7 @@ inline void displayLinkRegisterServerEndpoints() {
   });
 
   server.on(
-      AM6_INDOOR_DISPLAY_RX_PATH,
+      AM5_INDOOR_DISPLAY_RX_PATH,
       HTTP_POST,
       [](AsyncWebServerRequest* request) {
         String* body = static_cast<String*>(request->_tempObject);
@@ -157,7 +157,7 @@ inline void displayLinkRegisterServerEndpoints() {
           return;
         }
 
-        AM6DisplayPendingCommand command;
+        AM5DisplayPendingCommand command;
         const bool valid = displayLinkParseIncomingJson(*body, command);
 
         Serial.print("[DISPLAY][HTTP RX] JSON: ");
@@ -187,7 +187,7 @@ inline void displayLinkRegisterServerEndpoints() {
          size_t len,
          size_t index,
          size_t total) {
-        if (total == 0 || total > AM6_DISPLAY_MAX_BODY_BYTES ||
+        if (total == 0 || total > AM5_DISPLAY_MAX_BODY_BYTES ||
             index > total || len > total - index) {
           return;
         }
@@ -205,8 +205,8 @@ inline void displayLinkRegisterServerEndpoints() {
 
   server.on("/display_link", HTTP_GET, [](AsyncWebServerRequest* request) {
     StaticJsonDocument<384> doc;
-    doc["display_ip"] = AM6_DISPLAY_IP;
-    doc["display_online"] = am6DisplayOnline ? 1 : 0;
+    doc["display_ip"] = AM5_DISPLAY_IP;
+    doc["display_online"] = am5DisplayOnline ? 1 : 0;
     doc["powersw"] = system_power;
     doc["fanSw"] = fanSpeedToMqttFanSw();
     doc["mode"] = hvac_mode;
@@ -220,25 +220,25 @@ inline void displayLinkRegisterServerEndpoints() {
   });
 
   Serial.print("[DISPLAY] RX endpoint ready: ");
-  Serial.println(AM6_INDOOR_DISPLAY_RX_PATH);
+  Serial.println(AM5_INDOOR_DISPLAY_RX_PATH);
 }
 
-inline bool displayLinkConsumePending(AM6DisplayPendingCommand& out) {
-  portENTER_CRITICAL(&am6DisplayCommandMux);
-  if (!am6DisplayCommandPending) {
-    portEXIT_CRITICAL(&am6DisplayCommandMux);
+inline bool displayLinkConsumePending(AM5DisplayPendingCommand& out) {
+  portENTER_CRITICAL(&am5DisplayCommandMux);
+  if (!am5DisplayCommandPending) {
+    portEXIT_CRITICAL(&am5DisplayCommandMux);
     return false;
   }
 
-  out = am6DisplayPendingCommand;
-  am6DisplayPendingCommand = AM6DisplayPendingCommand{};
-  am6DisplayCommandPending = false;
-  portEXIT_CRITICAL(&am6DisplayCommandMux);
+  out = am5DisplayPendingCommand;
+  am5DisplayPendingCommand = AM5DisplayPendingCommand{};
+  am5DisplayCommandPending = false;
+  portEXIT_CRITICAL(&am5DisplayCommandMux);
   return true;
 }
 
 inline void displayLinkApplyPendingCommand() {
-  AM6DisplayPendingCommand command;
+  AM5DisplayPendingCommand command;
   if (!displayLinkConsumePending(command)) return;
 
   const int oldPower = system_power;
@@ -266,7 +266,7 @@ inline void displayLinkApplyPendingCommand() {
 
   if (changed) {
     mqtt_publish_requested = true;
-    am6DisplayForcePush = true;
+    am5DisplayForcePush = true;
     if (oldPower != system_power) rs485_urgent_outdoor_sync = true;
   }
 
@@ -281,29 +281,29 @@ inline void displayLinkApplyPendingCommand() {
 }
 
 inline bool displayLinkStateChanged() {
-  return am6DisplayLastPower != system_power ||
-         am6DisplayLastFanSw != fanSpeedToMqttFanSw() ||
-         am6DisplayLastMode != hvac_mode ||
-         am6DisplayLastIndoorSw != indoor_sw ||
-         am6DisplayLastOutdoorSw != outdoor_sw ||
-         am6DisplayLastStatusOut != effectiveOutdoorStatusForPublish() ||
-         isnan(am6DisplayLastSetPoint) ||
-         fabsf(am6DisplayLastSetPoint - setPoint) > 0.001f;
+  return am5DisplayLastPower != system_power ||
+         am5DisplayLastFanSw != fanSpeedToMqttFanSw() ||
+         am5DisplayLastMode != hvac_mode ||
+         am5DisplayLastIndoorSw != indoor_sw ||
+         am5DisplayLastOutdoorSw != outdoor_sw ||
+         am5DisplayLastStatusOut != effectiveOutdoorStatusForPublish() ||
+         isnan(am5DisplayLastSetPoint) ||
+         fabsf(am5DisplayLastSetPoint - setPoint) > 0.001f;
 }
 
 inline void displayLinkRememberState() {
-  am6DisplayLastPower = system_power;
-  am6DisplayLastFanSw = fanSpeedToMqttFanSw();
-  am6DisplayLastMode = hvac_mode;
-  am6DisplayLastIndoorSw = indoor_sw;
-  am6DisplayLastOutdoorSw = outdoor_sw;
-  am6DisplayLastStatusOut = effectiveOutdoorStatusForPublish();
-  am6DisplayLastSetPoint = setPoint;
+  am5DisplayLastPower = system_power;
+  am5DisplayLastFanSw = fanSpeedToMqttFanSw();
+  am5DisplayLastMode = hvac_mode;
+  am5DisplayLastIndoorSw = indoor_sw;
+  am5DisplayLastOutdoorSw = outdoor_sw;
+  am5DisplayLastStatusOut = effectiveOutdoorStatusForPublish();
+  am5DisplayLastSetPoint = setPoint;
 }
 
 inline bool displayLinkPostAuthoritativeState() {
   if (WiFi.getMode() == WIFI_MODE_NULL || WiFi.softAPgetStationNum() == 0) {
-    am6DisplayOnline = false;
+    am5DisplayOnline = false;
     return false;
   }
 
@@ -324,24 +324,24 @@ inline bool displayLinkPostAuthoritativeState() {
 
   WiFiClient wifiClient;
   HTTPClient http;
-  const String url = String("http://") + AM6_DISPLAY_IP + AM6_DISPLAY_RECEIVE_PATH;
+  const String url = String("http://") + AM5_DISPLAY_IP + AM5_DISPLAY_RECEIVE_PATH;
 
   if (!http.begin(wifiClient, url)) {
     Serial.println("[DISPLAY][HTTP TX] http.begin failed");
-    am6DisplayOnline = false;
+    am5DisplayOnline = false;
     return false;
   }
 
   http.setReuse(false);
-  http.setConnectTimeout(AM6_DISPLAY_HTTP_CONNECT_TIMEOUT_MS);
-  http.setTimeout(AM6_DISPLAY_HTTP_TIMEOUT_MS);
+  http.setConnectTimeout(AM5_DISPLAY_HTTP_CONNECT_TIMEOUT_MS);
+  http.setTimeout(AM5_DISPLAY_HTTP_TIMEOUT_MS);
   http.addHeader("Content-Type", "application/json");
 
   const int code = http.POST(body);
   http.end();
 
   if (code < 200 || code >= 300) {
-    am6DisplayOnline = false;
+    am5DisplayOnline = false;
     Serial.print("[DISPLAY][HTTP TX] FAILED code=");
     Serial.print(code);
     Serial.print(" JSON=");
@@ -349,12 +349,12 @@ inline bool displayLinkPostAuthoritativeState() {
     return false;
   }
 
-  am6DisplayOnline = true;
-  am6DisplayLastSuccessMs = millis();
+  am5DisplayOnline = true;
+  am5DisplayLastSuccessMs = millis();
   displayLinkRememberState();
 
   Serial.print("[DISPLAY][HTTP TX] SUCCESS -> ");
-  Serial.print(AM6_DISPLAY_IP);
+  Serial.print(AM5_DISPLAY_IP);
   Serial.print(" JSON=");
   Serial.println(body);
   return true;
@@ -365,16 +365,16 @@ inline void displayLinkService() {
 
   const unsigned long now = millis();
   const bool changed = displayLinkStateChanged();
-  const bool periodicDue = (now - am6DisplayLastPushMs) >= AM6_DISPLAY_PUSH_INTERVAL_MS;
+  const bool periodicDue = (now - am5DisplayLastPushMs) >= AM5_DISPLAY_PUSH_INTERVAL_MS;
 
-  if (!am6DisplayForcePush && !changed && !periodicDue) return;
-  if (static_cast<int32_t>(now - am6DisplayNextAttemptMs) < 0) return;
+  if (!am5DisplayForcePush && !changed && !periodicDue) return;
+  if (static_cast<int32_t>(now - am5DisplayNextAttemptMs) < 0) return;
 
-  am6DisplayLastPushMs = now;
+  am5DisplayLastPushMs = now;
   const bool ok = displayLinkPostAuthoritativeState();
-  am6DisplayForcePush = false;
-  am6DisplayNextAttemptMs = now + (ok ? AM6_DISPLAY_PUSH_INTERVAL_MS
-                                     : AM6_DISPLAY_OFFLINE_RETRY_MS);
+  am5DisplayForcePush = false;
+  am5DisplayNextAttemptMs = now + (ok ? AM5_DISPLAY_PUSH_INTERVAL_MS
+                                     : AM5_DISPLAY_OFFLINE_RETRY_MS);
 }
 
 #endif

@@ -1,0 +1,9 @@
+indoor:
+23 low sw
+22 mid sw
+21 high sw
+19 heat sw
+
+
+ok now we have to do that in the indoor hardware code we will add three GPIO 23 22 21 for fan switch if 23 is 1 then fan is low and if 22 is 1 then fan is Medium and if 21 is 1 then fan is high and on GPIO 19 will be heat cool switch when it is 1 then it is on heat and when 0 it is on cool. and on GPIO 13 add power switch if 1 then power is on of complete unit otherwise off if 0. and now our complete hardware's indoor can be controlled with switch. Tell me one thing previously we were using app and display to control fan speed and power on/off and heat cool now that we have added switches in indoor unit for that what will we do of the display?
+i think now we should use the display for monitoring like power on and off fan speeds heat cool switchesfrom outdoor unit

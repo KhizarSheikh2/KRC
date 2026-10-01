@@ -6,7 +6,7 @@
 #include "outdoor_status_logic.h"
 
 // =====================================================
-// AM6 OUTDOOR RS485 SLAVE - MATCHED TO LATEST INDOOR
+// AM5 OUTDOOR RS485 SLAVE - MATCHED TO LATEST INDOOR
 // =====================================================
 // Frame: AA 55 DEST SRC TYPE LEN PAYLOAD... CRC_LO CRC_HI
 // Indoor master: 0x01
@@ -273,12 +273,12 @@ inline uint8_t currentOutdoorStatusCode()
 
 inline void sendOutdoorStatusResponse()
 {
-  uint8_t payload[AM6_RS485_STATUS_RESPONSE_LEN] = {0};
-  payload[AM6_RS485_STATUS_VERSION] = AM6_RS485_PROTOCOL_VERSION;
-  payload[AM6_RS485_STATUS_SYSTEM_POWER] = systemPower ? 1 : 0;
-  payload[AM6_RS485_STATUS_OUTDOOR_ENABLE] = outdoorEnable ? 1 : 0;
-  payload[AM6_RS485_STATUS_EFFECTIVE_POWER] = (systemPower && outdoorEnable) ? 1 : 0;
-  payload[AM6_RS485_STATUS_CODE] = currentOutdoorStatusCode();
+  uint8_t payload[AM5_RS485_STATUS_RESPONSE_LEN] = {0};
+  payload[AM5_RS485_STATUS_VERSION] = AM5_RS485_PROTOCOL_VERSION;
+  payload[AM5_RS485_STATUS_SYSTEM_POWER] = systemPower ? 1 : 0;
+  payload[AM5_RS485_STATUS_OUTDOOR_ENABLE] = outdoorEnable ? 1 : 0;
+  payload[AM5_RS485_STATUS_EFFECTIVE_POWER] = (systemPower && outdoorEnable) ? 1 : 0;
+  payload[AM5_RS485_STATUS_CODE] = currentOutdoorStatusCode();
 
   uint8_t roleValidMask = 0;
   uint8_t physicalValidMask = 0;
@@ -292,7 +292,7 @@ inline void sendOutdoorStatusResponse()
 
     rs485PutInt16LE(
       payload,
-      static_cast<uint8_t>(AM6_RS485_STATUS_ROLE_TEMP_BASE + i * 2),
+      static_cast<uint8_t>(AM5_RS485_STATUS_ROLE_TEMP_BASE + i * 2),
       rs485EncodeTemperature((roleValid && isfinite(roleTemp)) ? roleTemp : TEMP_INVALID_VALUE)
     );
 
@@ -308,43 +308,43 @@ inline void sendOutdoorStatusResponse()
 
     rs485PutInt16LE(
       payload,
-      static_cast<uint8_t>(AM6_RS485_STATUS_PHYSICAL_TEMP_BASE + i * 2),
+      static_cast<uint8_t>(AM5_RS485_STATUS_PHYSICAL_TEMP_BASE + i * 2),
       rs485EncodeTemperature(physicalTemp)
     );
   }
 
-  payload[AM6_RS485_STATUS_ROLE_VALID_MASK] = roleValidMask;
-  payload[AM6_RS485_STATUS_PHYSICAL_VALID_MASK] = physicalValidMask;
+  payload[AM5_RS485_STATUS_ROLE_VALID_MASK] = roleValidMask;
+  payload[AM5_RS485_STATUS_PHYSICAL_VALID_MASK] = physicalValidMask;
 
-  payload[AM6_RS485_STATUS_RELAY_BASE + 0] = R1_State ? 1 : 0;
-  payload[AM6_RS485_STATUS_RELAY_BASE + 1] = R2_State ? 1 : 0;
-  payload[AM6_RS485_STATUS_RELAY_BASE + 2] = R3_State ? 1 : 0;
-  payload[AM6_RS485_STATUS_RELAY_BASE + 3] = R4_State ? 1 : 0;
+  payload[AM5_RS485_STATUS_RELAY_BASE + 0] = R1_State ? 1 : 0;
+  payload[AM5_RS485_STATUS_RELAY_BASE + 1] = R2_State ? 1 : 0;
+  payload[AM5_RS485_STATUS_RELAY_BASE + 2] = R3_State ? 1 : 0;
+  payload[AM5_RS485_STATUS_RELAY_BASE + 3] = R4_State ? 1 : 0;
 
-  payload[AM6_RS485_STATUS_SWITCH_PCF_HEALTHY] = switchPcfHealthy ? 1 : 0;
-  payload[AM6_RS485_STATUS_RELAY_PCA_HEALTHY] =
+  payload[AM5_RS485_STATUS_SWITCH_PCF_HEALTHY] = switchPcfHealthy ? 1 : 0;
+  payload[AM5_RS485_STATUS_RELAY_PCA_HEALTHY] =
     (relayPcaHealthy && relayPcaConfigured) ? 1 : 0;
 
   for (uint8_t i = 0; i < SWITCH_COUNT; i++)
-    payload[AM6_RS485_STATUS_SWITCH_BASE + i] = switchState[i] ? 1 : 0;
+    payload[AM5_RS485_STATUS_SWITCH_BASE + i] = switchState[i] ? 1 : 0;
 
   Serial.print("[OUTDOOR -> INDOOR] B0 TX | v=");
-  Serial.print(AM6_RS485_PROTOCOL_VERSION);
+  Serial.print(AM5_RS485_PROTOCOL_VERSION);
   Serial.print(" power="); Serial.print(systemPower);
   Serial.print(" outdoorEnable="); Serial.print(outdoorEnable);
-  Serial.print(" status="); Serial.print(payload[AM6_RS485_STATUS_CODE]);
-  Serial.print("("); Serial.print(outdoorStatusText(payload[AM6_RS485_STATUS_CODE])); Serial.print(")");
+  Serial.print(" status="); Serial.print(payload[AM5_RS485_STATUS_CODE]);
+  Serial.print("("); Serial.print(outdoorStatusText(payload[AM5_RS485_STATUS_CODE])); Serial.print(")");
   Serial.print(" R=");
   Serial.print(R1_State ? 1 : 0); Serial.print(R2_State ? 1 : 0);
   Serial.print(R3_State ? 1 : 0); Serial.print(R4_State ? 1 : 0);
   Serial.print(" SW=");
   for (uint8_t i = 0; i < SWITCH_COUNT; i++) Serial.print(switchState[i] ? 1 : 0);
-  Serial.print(" LEN="); Serial.println(AM6_RS485_STATUS_RESPONSE_LEN);
+  Serial.print(" LEN="); Serial.println(AM5_RS485_STATUS_RESPONSE_LEN);
 
   rs485SendFrame(RS485_ADDR_INDOOR,
                  RS485_MSG_OUTDOOR_STATUS_RESPONSE,
                  payload,
-                 AM6_RS485_STATUS_RESPONSE_LEN);
+                 AM5_RS485_STATUS_RESPONSE_LEN);
 }
 
 // =====================================================
@@ -352,9 +352,9 @@ inline void sendOutdoorStatusResponse()
 // =====================================================
 inline void sendOutdoorConfigAck(bool success)
 {
-  uint8_t payload[AM6_RS485_CONFIG_ACK_LEN] = {0};
-  payload[AM6_RS485_CONFIG_ACK_VERSION] = AM6_RS485_PROTOCOL_VERSION;
-  payload[AM6_RS485_CONFIG_ACK_SUCCESS] = success ? 1 : 0;
+  uint8_t payload[AM5_RS485_CONFIG_ACK_LEN] = {0};
+  payload[AM5_RS485_CONFIG_ACK_VERSION] = AM5_RS485_PROTOCOL_VERSION;
+  payload[AM5_RS485_CONFIG_ACK_SUCCESS] = success ? 1 : 0;
 
   Serial.print("[RS485-TX] B1 config ACK success=");
   Serial.println(success ? 1 : 0);
@@ -362,7 +362,7 @@ inline void sendOutdoorConfigAck(bool success)
   rs485SendFrame(RS485_ADDR_INDOOR,
                  RS485_MSG_OUTDOOR_CONFIG_ACK,
                  payload,
-                 AM6_RS485_CONFIG_ACK_LEN);
+                 AM5_RS485_CONFIG_ACK_LEN);
 }
 
 // =====================================================
@@ -372,34 +372,34 @@ inline void sendOutdoorConfigAck(bool success)
 inline void sendOutdoorConfigSnapshot()
 {
   uint8_t payload[RS485_MAX_PAYLOAD] = {0};
-  payload[AM6_RS485_CONFIG_SNAPSHOT_VERSION] = AM6_RS485_PROTOCOL_VERSION;
+  payload[AM5_RS485_CONFIG_SNAPSHOT_VERSION] = AM5_RS485_PROTOCOL_VERSION;
 
   uint8_t count = 0;
-  uint8_t writeIndex = AM6_RS485_CONFIG_SNAPSHOT_HEADER_LEN;
+  uint8_t writeIndex = AM5_RS485_CONFIG_SNAPSHOT_HEADER_LEN;
 
   for (uint8_t i = 0; i < TEMP_SENSOR_COUNT; i++)
   {
     if (!tempSensorPresent[i]) continue;
 
-    if (static_cast<uint16_t>(writeIndex) + AM6_RS485_CONFIG_SNAPSHOT_RECORD_LEN > RS485_MAX_PAYLOAD)
+    if (static_cast<uint16_t>(writeIndex) + AM5_RS485_CONFIG_SNAPSHOT_RECORD_LEN > RS485_MAX_PAYLOAD)
       break;
 
-    memcpy(&payload[writeIndex + AM6_RS485_CONFIG_RECORD_ROM_BASE], tempAddress[i], 8);
-    payload[writeIndex + AM6_RS485_CONFIG_RECORD_ROLE] = tempSensorRole[i];
+    memcpy(&payload[writeIndex + AM5_RS485_CONFIG_RECORD_ROM_BASE], tempAddress[i], 8);
+    payload[writeIndex + AM5_RS485_CONFIG_RECORD_ROLE] = tempSensorRole[i];
     rs485PutInt16LE(payload,
-                    static_cast<uint8_t>(writeIndex + AM6_RS485_CONFIG_RECORD_OFFSET_BASE),
+                    static_cast<uint8_t>(writeIndex + AM5_RS485_CONFIG_RECORD_OFFSET_BASE),
                     rs485EncodeOffset(tempSensorOffset[i]));
     rs485PutInt16LE(payload,
-                    static_cast<uint8_t>(writeIndex + AM6_RS485_CONFIG_RECORD_TEMP_BASE),
+                    static_cast<uint8_t>(writeIndex + AM5_RS485_CONFIG_RECORD_TEMP_BASE),
                     rs485EncodeTemperature(temperature[i]));
 
-    writeIndex = static_cast<uint8_t>(writeIndex + AM6_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
+    writeIndex = static_cast<uint8_t>(writeIndex + AM5_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
     count++;
   }
 
-  payload[AM6_RS485_CONFIG_SNAPSHOT_COUNT] = count;
+  payload[AM5_RS485_CONFIG_SNAPSHOT_COUNT] = count;
   const uint8_t payloadLength = static_cast<uint8_t>(
-    AM6_RS485_CONFIG_SNAPSHOT_HEADER_LEN + count * AM6_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
+    AM5_RS485_CONFIG_SNAPSHOT_HEADER_LEN + count * AM5_RS485_CONFIG_SNAPSHOT_RECORD_LEN);
 
   Serial.print("[RS485-TX] B2 config snapshot count=");
   Serial.print(count);
@@ -419,24 +419,24 @@ inline void handleOutdoorStatusRequest(const OutdoorRS485Frame &frame)
 {
   // Protocol v2 request is exact and unambiguous:
   // [0] version, [1] system_power, [2] outdoorsw.
-  if (frame.len != AM6_RS485_STATUS_REQUEST_LEN)
+  if (frame.len != AM5_RS485_STATUS_REQUEST_LEN)
   {
     Serial.print("[RS485-RX] 0x30 rejected: expected LEN=");
-    Serial.print(AM6_RS485_STATUS_REQUEST_LEN);
+    Serial.print(AM5_RS485_STATUS_REQUEST_LEN);
     Serial.print(" got ");
     Serial.println(frame.len);
     return;
   }
 
-  if (frame.payload[AM6_RS485_STATUS_REQ_VERSION] != AM6_RS485_PROTOCOL_VERSION)
+  if (frame.payload[AM5_RS485_STATUS_REQ_VERSION] != AM5_RS485_PROTOCOL_VERSION)
   {
     Serial.print("[RS485-RX] 0x30 rejected: protocol version=");
-    Serial.println(frame.payload[AM6_RS485_STATUS_REQ_VERSION]);
+    Serial.println(frame.payload[AM5_RS485_STATUS_REQ_VERSION]);
     return;
   }
 
-  const uint8_t receivedPower = frame.payload[AM6_RS485_STATUS_REQ_SYSTEM_POWER];
-  const uint8_t receivedOutdoorEnable = frame.payload[AM6_RS485_STATUS_REQ_OUTDOOR_ENABLE];
+  const uint8_t receivedPower = frame.payload[AM5_RS485_STATUS_REQ_SYSTEM_POWER];
+  const uint8_t receivedOutdoorEnable = frame.payload[AM5_RS485_STATUS_REQ_OUTDOOR_ENABLE];
   if (receivedPower > 1 || receivedOutdoorEnable > 1)
   {
     Serial.println("[RS485-RX] 0x30 rejected: invalid power/enable value");
@@ -457,7 +457,7 @@ inline void handleOutdoorStatusRequest(const OutdoorRS485Frame &frame)
 inline void handleOutdoorConfigSet(const OutdoorRS485Frame &frame)
 {
   // [0] version, [1..8] ROM, [9] role 0..6, [10..11] offset x0.01C
-  if (frame.len != AM6_RS485_CONFIG_SET_LEN)
+  if (frame.len != AM5_RS485_CONFIG_SET_LEN)
   {
     Serial.print("[RS485-RX] 0x31 rejected: expected LEN=12, got ");
     Serial.println(frame.len);
@@ -465,17 +465,17 @@ inline void handleOutdoorConfigSet(const OutdoorRS485Frame &frame)
     return;
   }
 
-  if (frame.payload[AM6_RS485_CONFIG_SET_VERSION] != AM6_RS485_PROTOCOL_VERSION)
+  if (frame.payload[AM5_RS485_CONFIG_SET_VERSION] != AM5_RS485_PROTOCOL_VERSION)
   {
     Serial.println("[RS485-RX] 0x31 rejected: protocol version mismatch");
     sendOutdoorConfigAck(false);
     return;
   }
 
-  const uint8_t *address = &frame.payload[AM6_RS485_CONFIG_SET_ROM_BASE];
-  const uint8_t role = frame.payload[AM6_RS485_CONFIG_SET_ROLE];
+  const uint8_t *address = &frame.payload[AM5_RS485_CONFIG_SET_ROM_BASE];
+  const uint8_t role = frame.payload[AM5_RS485_CONFIG_SET_ROLE];
   const int16_t encodedOffset = rs485GetInt16LE(
-    frame.payload, AM6_RS485_CONFIG_SET_OFFSET_BASE);
+    frame.payload, AM5_RS485_CONFIG_SET_OFFSET_BASE);
   const float offset = static_cast<float>(encodedOffset) / 100.0f;
 
   Serial.print("[RS485-RX] 0x31 config ROM=");
@@ -491,8 +491,8 @@ inline void handleOutdoorConfigSet(const OutdoorRS485Frame &frame)
 
 inline void handleOutdoorConfigRequest(const OutdoorRS485Frame &frame)
 {
-  if (frame.len != AM6_RS485_CONFIG_REQUEST_LEN ||
-      frame.payload[AM6_RS485_CONFIG_SNAPSHOT_VERSION] != AM6_RS485_PROTOCOL_VERSION)
+  if (frame.len != AM5_RS485_CONFIG_REQUEST_LEN ||
+      frame.payload[AM5_RS485_CONFIG_SNAPSHOT_VERSION] != AM5_RS485_PROTOCOL_VERSION)
   {
     Serial.println("[RS485-RX] 0x32 rejected: invalid protocol version/length");
     return;
@@ -685,7 +685,7 @@ inline void initRS485()
   applyOutdoorEnable(0);
   forceAllRelaysOff();
 
-  Serial.println("[RS485] AM6 Outdoor SLAVE initialized");
+  Serial.println("[RS485] AM5 Outdoor SLAVE initialized");
   Serial.print("[RS485] Indoor=0x"); printHexByte(RS485_ADDR_INDOOR);
   Serial.print(" Outdoor=0x"); printHexByte(RS485_ADDR_OUTDOOR);
   Serial.print(" Baud="); Serial.println(RS485_BAUD_RATE);

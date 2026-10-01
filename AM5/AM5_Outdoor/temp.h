@@ -26,7 +26,7 @@ struct __attribute__((packed)) StoredSensorConfig
 };
 
 StoredSensorConfig storedSensorConfig[TEMP_SENSOR_COUNT] = {};
-static const char *OUTDOOR_PREF_NAMESPACE = "AM6_outdoor";
+static const char *OUTDOOR_PREF_NAMESPACE = "AM5_outdoor";
 static const char *OUTDOOR_PREF_KEY = "sensor_cfg";
 
 inline bool tempAddressesEqual(const uint8_t *a, const uint8_t *b)

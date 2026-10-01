@@ -18,8 +18,8 @@
 
 // =====================================================
 // RS485 TWO-NODE BUS CONFIGURATION
-// AM6 Indoor  = MASTER / main controller (0x01)
-// AM6 Outdoor = SLAVE (0x02)
+// AM5 Indoor  = MASTER / main controller (0x01)
+// AM5 Outdoor = SLAVE (0x02)
 // =====================================================
 #define RS485_BAUD                         19200UL
 #define RS485_RX_PIN                       16
@@ -51,12 +51,12 @@
     (DS18B20_PIN == RELAY_HIGH_PIN) || (DS18B20_PIN == RELAY_HEAT_PIN) || \
     (DS18B20_PIN == RS485_RX_PIN) || (DS18B20_PIN == RS485_TX_PIN) || \
     (DS18B20_PIN == RS485_DE_RE_PIN)
-#error "AM6 Indoor GPIO conflict: DS18B20 pin overlaps relay/RS485 pin"
+#error "AM5 Indoor GPIO conflict: DS18B20 pin overlaps relay/RS485 pin"
 #endif
 
 #if (RELAY_HEAT_PIN == RS485_RX_PIN) || (RELAY_HEAT_PIN == RS485_TX_PIN) || \
     (RELAY_HEAT_PIN == RS485_DE_RE_PIN)
-#error "AM6 Indoor GPIO conflict: HEAT relay overlaps RS485 pin"
+#error "AM5 Indoor GPIO conflict: HEAT relay overlaps RS485 pin"
 #endif
 
 enum FanSpeed : uint8_t {
@@ -81,7 +81,7 @@ enum OutdoorStatusCode : uint8_t {
 };
 
 // =====================================================
-// AUTHORITATIVE AM6 SYSTEM STATE
+// AUTHORITATIVE AM5 SYSTEM STATE
 // =====================================================
 // system_power is the ONLY authoritative complete-system power variable.
 // 0 = OFF, 1 = ON.
@@ -112,7 +112,7 @@ PubSubClient client(espClient);
 OneWire oneWire(DS18B20_PIN);
 DallasTemperature sensors(&oneWire);
 
-String devicename = "GHS-AAA001";
+String devicename = "AM5-AAA001";
 
 // =====================================================
 // MQTT TOPICS - EXACT APPLICATION CONTRACT
@@ -130,7 +130,7 @@ String device_topic_p_indoor_sensor = "/KRC/" + devicename + "/indoorSensor";
 String device_topic_p_outdoor_sensor = "/KRC/" + devicename + "/outdoorSensor";
 String device_topic_p_io = "/KRC/" + devicename + "/AM-Input-Output";
 
-String Name = "AM6";
+String Name = "AM5";
 String myID = "16092100096";
 String substring1 = myID.substring(2, 6);
 String substring2 = myID.substring(9, 11);

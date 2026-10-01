@@ -1,10 +1,10 @@
 #ifndef DEF_H
 #define DEF_H
 
-#include "am6_rs485_protocol.h"
+#include "am5_rs485_protocol.h"
 
 // =====================================================
-// AM6 OUTDOOR HARDWARE CONFIGURATION
+// AM5 OUTDOOR HARDWARE CONFIGURATION
 // =====================================================
 
 // Serial debug
@@ -57,13 +57,13 @@
 #define RELAY_ACTIVE_LEVEL HIGH
 
 // =====================================================
-// RS485 - EXACTLY MATCHES AM6 INDOOR MASTER
+// RS485 - EXACTLY MATCHES AM5 INDOOR MASTER
 // =====================================================
 // Indoor master  = 0x01
 // Outdoor slave  = 0x02
 // Display is NOT on this RS485 bus.
 // 19200 8N1, 2-wire half duplex
-// Protocol/message/packet layout is centralized in am6_rs485_protocol.h.
+// Protocol/message/packet layout is centralized in am5_rs485_protocol.h.
 
 #define RS485_ADDR_INDOOR  0x01
 #define RS485_ADDR_OUTDOOR 0x02

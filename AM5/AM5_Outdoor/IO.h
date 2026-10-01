@@ -415,7 +415,7 @@ void controlRelays()
   static bool firstNormalEvaluation = true;
 
   // Master safety gates come first. The existing SW1..SW8 logic is used only
-  // while the complete AM6 system AND the Outdoor section are enabled.
+  // while the complete AM5 system AND the Outdoor section are enabled.
   // This guarantees a Display/App powersw=0 command turns Outdoor R1..R4 OFF.
   int inhibitReason = 0;
 

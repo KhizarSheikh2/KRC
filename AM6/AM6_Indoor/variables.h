@@ -201,7 +201,8 @@ bool outdoorPcfHealthy = false;
 int outdoorPowerEcho = 0;
 int outdoorEnableEcho = 1;
 int outdoorEffectivePower = 0;
-int outdoorStatusCode = OUT_STATUS_STOPPED;
+int outdoorStatusCode = OUT_STATUS_STOPPED;   // Circuit A: SW1..SW4 -> R1/R3 -> statusout
+int outdoorStatusCodeB = OUT_STATUS_STOPPED;  // Circuit B: SW5..SW8 -> R2/R4 -> statusoutB
 bool outdoorSwitchState[8] = {false, false, false, false, false, false, false, false};
 
 bool outdoorConfigSnapshotValid = false;

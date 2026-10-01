@@ -5,7 +5,7 @@
 #include <math.h>
 
 // =====================================================
-// AM6 INDOOR DS18B20 CONFIGURATION
+// AM5 INDOOR DS18B20 CONFIGURATION
 // Persistent configuration is attached to each DS18B20 ROM address, exactly
 // like the Outdoor panel: ROM -> role + offset.
 // =====================================================
@@ -19,7 +19,7 @@ struct __attribute__((packed)) StoredIndoorSensorConfig {
 };
 
 StoredIndoorSensorConfig storedIndoorSensorConfig[INDOOR_SENSOR_COUNT] = {};
-static const char* INDOOR_TEMP_PREF_NAMESPACE = "am6_indoor";
+static const char* INDOOR_TEMP_PREF_NAMESPACE = "am5_indoor";
 static const char* INDOOR_TEMP_PREF_KEY = "sensor_cfg";
 
 inline bool compareAddresses(const uint8_t* a, const uint8_t* b) {

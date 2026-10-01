@@ -18,9 +18,9 @@ struct PendingCommand {
     bool hasPower = false;
     int power = 0;
     bool hasMode = false;
-    uint8_t mode = AM6_MODE_COOL;
+    uint8_t mode = AM5_MODE_COOL;
     bool hasFan = false;
-    uint8_t fan = AM6_FAN_LOW;
+    uint8_t fan = AM5_FAN_LOW;
 };
 
 PendingCommand pending;
@@ -40,13 +40,13 @@ bool haveIndoorState = false;
 constexpr size_t kMaxBodyBytes = 768;
 
 IPAddress displayLocalIp() {
-    return IPAddress(AM6_DISPLAY_IP_0, AM6_DISPLAY_IP_1,
-                     AM6_DISPLAY_IP_2, AM6_DISPLAY_IP_3);
+    return IPAddress(AM5_DISPLAY_IP_0, AM5_DISPLAY_IP_1,
+                     AM5_DISPLAY_IP_2, AM5_DISPLAY_IP_3);
 }
 
 IPAddress indoorIp() {
-    return IPAddress(AM6_INDOOR_IP_0, AM6_INDOOR_IP_1,
-                     AM6_INDOOR_IP_2, AM6_INDOOR_IP_3);
+    return IPAddress(AM5_INDOOR_IP_0, AM5_INDOOR_IP_1,
+                     AM5_INDOOR_IP_2, AM5_INDOOR_IP_3);
 }
 
 IPAddress subnet() {
@@ -84,7 +84,7 @@ bool parseZeroOne(JsonVariantConst value, int& out) {
 bool parseMode(JsonVariantConst value, uint8_t& out) {
     if (!value.is<int>()) return false;
     const int v = value.as<int>();
-    if (v != AM6_MODE_COOL && v != AM6_MODE_HEAT) return false;
+    if (v != AM5_MODE_COOL && v != AM5_MODE_HEAT) return false;
     out = static_cast<uint8_t>(v);
     return true;
 }
@@ -123,14 +123,14 @@ bool processIndoorState(const String& body) {
     }
 
     if (doc.containsKey("mode")) {
-        uint8_t mode = AM6_MODE_COOL;
+        uint8_t mode = AM5_MODE_COOL;
         if (!parseMode(doc["mode"], mode)) return false;
         displayStateSetMode(mode);
         accepted = true;
     }
 
     if (doc.containsKey("fanSw")) {
-        uint8_t fan = AM6_FAN_LOW;
+        uint8_t fan = AM5_FAN_LOW;
         if (!parseFanSw(doc["fanSw"], fan)) return false;
         displayStateSetFanSpeed(fan);
         accepted = true;
@@ -157,7 +157,7 @@ bool processIndoorState(const String& body) {
 void setupServer() {
     if (serverStarted) return;
 
-    displayServer.on(AM6_DISPLAY_RECEIVE_PATH, HTTP_OPTIONS,
+    displayServer.on(AM5_DISPLAY_RECEIVE_PATH, HTTP_OPTIONS,
                      [](AsyncWebServerRequest* request) {
         AsyncWebServerResponse* response = request->beginResponse(200);
         addCors(response);
@@ -165,7 +165,7 @@ void setupServer() {
     });
 
     displayServer.on(
-        AM6_DISPLAY_RECEIVE_PATH,
+        AM5_DISPLAY_RECEIVE_PATH,
         HTTP_POST,
         [](AsyncWebServerRequest* request) {
             String* body = static_cast<String*>(request->_tempObject);
@@ -211,9 +211,9 @@ void setupServer() {
 
     displayServer.on("/status", HTTP_GET, [](AsyncWebServerRequest* request) {
         StaticJsonDocument<384> doc;
-        doc["device"] = "AM6 Display";
+        doc["device"] = "AM5 Display";
         doc["wifi"] = WiFi.status() == WL_CONNECTED ? 1 : 0;
-        doc["indoor_link"] = wirelessLinkUiState() == AM6_LINK_ONLINE ? 1 : 0;
+        doc["indoor_link"] = wirelessLinkUiState() == AM5_LINK_ONLINE ? 1 : 0;
         doc["ip"] = WiFi.localIP().toString();
         doc["rssi"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
 
@@ -233,11 +233,11 @@ void startWifiConnection(uint32_t nowMs) {
     if (WiFi.status() == WL_CONNECTED) return;
 
     Serial.print("[WIFI] Connecting to Indoor AP: ");
-    Serial.println(AM6_INDOOR_AP_SSID);
+    Serial.println(AM5_INDOOR_AP_SSID);
 
     WiFi.disconnect(false, false);
     delay(20);
-    WiFi.begin(AM6_INDOOR_AP_SSID, AM6_INDOOR_AP_PASSWORD);
+    WiFi.begin(AM5_INDOOR_AP_SSID, AM5_INDOOR_AP_PASSWORD);
     wifiConnectInProgress = true;
     wifiConnectStartedMs = nowMs;
 }
@@ -268,12 +268,12 @@ void serviceWifi(uint32_t nowMs) {
     }
 
     if (wifiConnectInProgress) {
-        if (nowMs - wifiConnectStartedMs >= AM6_WIFI_CONNECT_TIMEOUT_MS) {
+        if (nowMs - wifiConnectStartedMs >= AM5_WIFI_CONNECT_TIMEOUT_MS) {
             Serial.print("[WIFI] TIMEOUT | status=");
             Serial.println(wifiStatusName(status));
             WiFi.disconnect(false, false);
             wifiConnectInProgress = false;
-            nextWifiAttemptMs = nowMs + AM6_WIFI_RETRY_MS;
+            nextWifiAttemptMs = nowMs + AM5_WIFI_RETRY_MS;
         }
         return;
     }
@@ -296,17 +296,17 @@ bool postPendingCommand(uint32_t nowMs) {
 
     WiFiClient client;
     HTTPClient http;
-    const String url = String("http://") + indoorIp().toString() + AM6_INDOOR_COMMAND_PATH;
+    const String url = String("http://") + indoorIp().toString() + AM5_INDOOR_COMMAND_PATH;
 
     if (!http.begin(client, url)) {
         Serial.println("[HTTP TX] http.begin failed");
-        nextCommandAttemptMs = nowMs + AM6_HTTP_RETRY_MS;
+        nextCommandAttemptMs = nowMs + AM5_HTTP_RETRY_MS;
         return false;
     }
 
     http.setReuse(false);
-    http.setConnectTimeout(AM6_HTTP_CONNECT_TIMEOUT_MS);
-    http.setTimeout(AM6_HTTP_RESPONSE_TIMEOUT_MS);
+    http.setConnectTimeout(AM5_HTTP_CONNECT_TIMEOUT_MS);
+    http.setTimeout(AM5_HTTP_RESPONSE_TIMEOUT_MS);
     http.addHeader("Content-Type", "application/json");
 
     const int code = http.POST(body);
@@ -317,7 +317,7 @@ bool postPendingCommand(uint32_t nowMs) {
         Serial.print(code);
         Serial.print(" JSON=");
         Serial.println(body);
-        nextCommandAttemptMs = nowMs + AM6_HTTP_RETRY_MS;
+        nextCommandAttemptMs = nowMs + AM5_HTTP_RETRY_MS;
         return false;
     }
 
@@ -335,7 +335,7 @@ bool postPendingCommand(uint32_t nowMs) {
 bool linkFresh(uint32_t nowMs) {
     return haveIndoorState &&
            WiFi.status() == WL_CONNECTED &&
-           (nowMs - lastIndoorStateMs) <= AM6_INDOOR_STATE_TIMEOUT_MS;
+           (nowMs - lastIndoorStateMs) <= AM5_INDOOR_STATE_TIMEOUT_MS;
 }
 
 void queuePower(int power) {
@@ -386,7 +386,7 @@ void wirelessLinkLoop() {
     serviceWifi(nowMs);
 
     if (haveIndoorState &&
-        nowMs - lastIndoorStateMs > AM6_INDOOR_STATE_TIMEOUT_MS) {
+        nowMs - lastIndoorStateMs > AM5_INDOOR_STATE_TIMEOUT_MS) {
         haveIndoorState = false;
         awaitingConfirmation = false;
         commandPending = false;
@@ -399,12 +399,12 @@ void wirelessLinkLoop() {
     }
 }
 
-AM6WirelessUiState wirelessLinkUiState() {
+AM5WirelessUiState wirelessLinkUiState() {
     const uint32_t nowMs = millis();
-    if (WiFi.status() != WL_CONNECTED) return AM6_LINK_OFFLINE;
-    if (!linkFresh(nowMs)) return AM6_LINK_WAITING;
-    if (commandPending || awaitingConfirmation) return AM6_LINK_SYNCING;
-    return AM6_LINK_ONLINE;
+    if (WiFi.status() != WL_CONNECTED) return AM5_LINK_OFFLINE;
+    if (!linkFresh(nowMs)) return AM5_LINK_WAITING;
+    if (commandPending || awaitingConfirmation) return AM5_LINK_SYNCING;
+    return AM5_LINK_ONLINE;
 }
 
 bool wirelessLinkCanControl() {
@@ -423,7 +423,7 @@ bool wirelessLinkRequestPower(int power) {
 
 bool wirelessLinkRequestMode(uint8_t mode) {
     if (!wirelessLinkCanControl()) return false;
-    if (mode != AM6_MODE_COOL && mode != AM6_MODE_HEAT) return false;
+    if (mode != AM5_MODE_COOL && mode != AM5_MODE_HEAT) return false;
     displayStateSetMode(mode);
     queueMode(mode);
     return true;
@@ -431,7 +431,7 @@ bool wirelessLinkRequestMode(uint8_t mode) {
 
 bool wirelessLinkRequestFan(uint8_t fanSpeed) {
     if (!wirelessLinkCanControl()) return false;
-    if (fanSpeed < AM6_FAN_LOW || fanSpeed > AM6_FAN_HIGH) return false;
+    if (fanSpeed < AM5_FAN_LOW || fanSpeed > AM5_FAN_HIGH) return false;
     displayStateSetFanSpeed(fanSpeed);
     queueFan(fanSpeed);
     return true;

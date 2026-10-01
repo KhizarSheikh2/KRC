@@ -1,4 +1,4 @@
-AM6 OUTDOOR / SYSTEM SOURCE VERIFICATION
+AM5 OUTDOOR / SYSTEM SOURCE VERIFICATION
 ========================================
 
 Corrected integration contract
@@ -10,7 +10,7 @@ Corrected integration contract
 - Config ACK 0xB1: exactly 2 bytes
 - Config snapshot request 0x32: exactly 1 byte
 - Config snapshot 0xB2: 2-byte header + 13 bytes per detected sensor
-- Shared am6_rs485_protocol.h is byte-for-byte identical in Indoor and Outdoor.
+- Shared am5_rs485_protocol.h is byte-for-byte identical in Indoor and Outdoor.
 
 Outdoor hardware behavior preserved
 -----------------------------------

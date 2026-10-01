@@ -4,7 +4,7 @@
 #include <time.h>
 
 // ============================================================
-// AM6 Wi-Fi provisioning + AWS IoT MQTT connectivity
+// AM5 Wi-Fi provisioning + AWS IoT MQTT connectivity
 // Indoor hardware is the ONLY Wi-Fi/MQTT node.
 // ============================================================
 
@@ -80,7 +80,7 @@ bool isClockReadyForTls() {
 
 void ensureVisibleAccessPoint(uint8_t channel = 1) {
   // The previous code used hidden=1. That prevents normal phone discovery.
-  // hidden=false keeps AM6-AAA001 visible to both the mobile app and display.
+  // hidden=false keeps AM5-AAA001 visible to both the mobile app and display.
   const IPAddress apIp(192, 168, 4, 1);
   const IPAddress subnetMask(255, 255, 255, 0);
   WiFi.softAPConfig(apIp, apIp, subnetMask);
@@ -98,7 +98,7 @@ void ensureVisibleAccessPoint(uint8_t channel = 1) {
 }
 
 void startAccessPoint() {
-  Serial.println("[WIFI] Starting AM6 provisioning AP");
+  Serial.println("[WIFI] Starting AM5 provisioning AP");
   WiFi.mode(WIFI_AP_STA);
   ensureVisibleAccessPoint(1);
   is_wifi_connected = (WiFi.status() == WL_CONNECTED);
@@ -141,7 +141,7 @@ bool connectStation(const String& targetSsid,
   Serial.print("[WIFI] Channel: ");
   Serial.println(wifi_channel);
 
-  // Keep a visible local AM6 AP for provisioning/service access.
+  // Keep a visible local AM5 AP for provisioning/service access.
   // In AP+STA mode ESP32 keeps both interfaces on the STA channel.
   ensureVisibleAccessPoint(static_cast<uint8_t>(wifi_channel));
   startClockSyncForTls();
@@ -159,7 +159,7 @@ bool wifi_check(const String& targetSsid, const String& targetPassword) {
 
   // Match the mobile-app provisioning contract used by the working
   // WT_COOLING project: test the credentials BEFORE returning HTTP 200.
-  // Keep AM6 SoftAP alive because the JC2432W328 display uses it.
+  // Keep AM5 SoftAP alive because the JC2432W328 display uses it.
   WiFi.mode(WIFI_AP_STA);
   WiFi.setHostname(hostname.c_str());
   WiFi.setAutoReconnect(true);
@@ -339,16 +339,16 @@ void server_setup() {
         request->send(response);
 
         // WT_COOLING saves the credentials after returning the result. Keep
-        // the same app-facing behavior. AM6 deliberately keeps SoftAP alive
+        // the same app-facing behavior. AM5 deliberately keeps SoftAP alive
         // for the display instead of calling WiFi.softAPdisconnect().
         ssid = requestedSsid;
         password = requestedPassword;
         saveCredentials(ssid, password);
 
         if (connected) {
-          Serial.println("[APP][WIFI] Provisioning SUCCESS; AM6 AP remains ON for display");
+          Serial.println("[APP][WIFI] Provisioning SUCCESS; AM5 AP remains ON for display");
         } else {
-          Serial.println("[APP][WIFI] Provisioning FAILED; AM6 AP remains ON for retry/display");
+          Serial.println("[APP][WIFI] Provisioning FAILED; AM5 AP remains ON for retry/display");
         }
       });
 
@@ -450,7 +450,7 @@ void reconnect() {
   nextMqttConnectAttemptMs = 0;
   Serial.println("[MQTT] Connected");
 
-  // Match the original working AM6/WT-style receive behavior first: subscribe
+  // Match the original working AM5/WT-style receive behavior first: subscribe
   // to the wildcard filter. Some AWS IoT policies authorize the topic-filter
   // resource /test/<device>/# specifically; in that case exact subscriptions
   // can be rejected even while publishing continues to work.
