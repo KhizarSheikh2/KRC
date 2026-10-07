@@ -1,0 +1,58 @@
+AM6 INDUSTRIAL POWER-CYCLE / RELAY-CHATTER FIX
+==============================================
+
+Root causes corrected
+---------------------
+1. Indoor previously allowed physical GPIO13=HIGH to energize Indoor relays during setup.
+2. Indoor master OFF was debounced like ordinary controls instead of being fail-fast.
+3. Outdoor loop evaluated relay logic before consuming a pending RS485 OFF command.
+4. Outdoor could re-energize immediately after an OFF->ON transition.
+5. A protection input could recover and re-energize immediately, allowing contact bounce to chatter outputs.
+6. statusout/statusoutB could report Running from healthy switch inputs even while the relevant Outdoor relay pair was actually OFF.
+
+New behavior
+------------
+Indoor:
+- Every boot starts with all Indoor relays OFF.
+- GPIO13 LOW -> immediate complete-system OFF.
+- GPIO13 HIGH -> must remain continuously HIGH for 1500 ms before system ON.
+- Any LOW during that 1500 ms cancels/restarts startup qualification.
+- Fan/mode are prepared while OFF, then power is applied only after qualification.
+- RS485 power=0 synchronization can pre-empt a non-power transaction.
+
+Outdoor:
+- RS485 is serviced before normal relay evaluation.
+- A fresh master power=1/outdoorsw=1 request must remain valid for 1500 ms before Outdoor is armed.
+- Each circuit must remain healthy for 1000 ms before its relay pair can restart.
+- Any fault or master OFF drops affected/all relays immediately.
+- A fresh recovery period is required after a fault or OFF condition.
+- PCA9554 output register is written and read back; logical relay state is updated only after verified output write.
+- statusout=Running requires R1+R3 verified ON.
+- statusoutB=Running requires R2+R4 verified ON.
+- During intentional re-arm/restart delay the status is Stopped, never false Running.
+- PCA9554 write/readback failure results in Power Fault / relays OFF.
+
+Verification performed
+----------------------
+PASS: Indoor and Outdoor protocol-v3 headers byte-for-byte identical.
+PASS: Outdoor complete source syntax checked with host Arduino/I2C stubs.
+PASS: Indoor local power-switch source syntax checked with host Arduino stubs.
+PASS: Indoor behavior harness:
+      - boot with GPIO13 HIGH remains OFF initially
+      - continuous HIGH qualification required
+      - GPIO13 LOW is immediate OFF
+      - brief OFF/ON bounce cannot restart relays
+PASS: Outdoor production-code behavior harness:
+      - boot relays OFF
+      - fresh power=1 does not energize immediately
+      - master re-arm delay enforced
+      - per-circuit healthy delay enforced
+      - power=0 turns all relay states OFF immediately
+      - OFF/ON bounce does not chatter relay state
+      - relay pairs restore only after both guards
+      - Circuit A High PSI fault drops only R1/R3 and reports statusout=2
+      - Circuit B remains Running when healthy
+
+Final hardware note
+-------------------
+Software can verify the PCA9554 output register command. It cannot verify a contactor/relay's mechanical auxiliary contact unless that feedback is wired to a separate input. If true physical contact feedback is required, add auxiliary feedback inputs.

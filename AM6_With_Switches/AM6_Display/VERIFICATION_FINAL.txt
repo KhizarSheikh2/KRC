@@ -1,0 +1,55 @@
+AM6 FINAL AUDIT - 2026-10-07
+================================
+
+DISPLAY UI FIXES
+- Splash duration: 2200 ms.
+- Splash progress bar updated continuously from elapsed time 0..100%.
+- Visible percentage label added (0%..100%).
+- FAN SPEED value uses Montserrat 16 and fixed centered/clipped value width so MEDIUM stays inside card.
+- Alerts left-side clipped blue stripe removed; replaced by clean horizontal accent.
+- Offline/unsynchronized Display data renders as NO DATA / -- instead of false switch faults.
+- UI fonts referenced are enabled in lv_conf.h.
+- UI C++ syntax check passed with LVGL/Arduino interface stubs.
+
+INDOOR MASTER AUDIT
+- Physical GPIO13 power switch remains authoritative.
+- OFF is immediate.
+- ON requires 1500 ms stable HIGH qualification.
+- Fan selector GPIO23/22/21 mapping remains LOW/MEDIUM/HIGH.
+- GPIO19 remains 0=COOL, 1=HEAT.
+- Blank/invalid fan selector holds last valid fan speed.
+- localSwitchesInit() now runs only after Wi-Fi/server/MQTT setup so the startup qualification timer cannot be consumed while the controller is still initializing.
+- MQTT socket timeout reduced from 5 s to 1 s to reduce the chance of starving the 500 ms Outdoor RS485 heartbeat during cloud reconnects.
+- Physical power/fan/mode remain monitoring-only from MQTT; app cannot override them.
+- Indoor services physical switches before RS485 in the main loop.
+
+OUTDOOR SLAVE AUDIT
+- RS485 loop is serviced before relay decisions.
+- No relay can energize without a fresh Indoor B0 command lease.
+- systemPower=0 or outdoorEnable=0 forces R1..R4 OFF.
+- Master re-arm delay: 1500 ms.
+- Circuit healthy restart delay: 1000 ms.
+- Circuit A: SW1..SW4 -> R1/R3 -> statusout.
+- Circuit B: SW5..SW8 -> R2/R4 -> statusoutB.
+- Status priority: High PSI -> Low PSI -> Power Fault -> Overload/Tripped -> Running.
+- Running requires the corresponding relay pair to be written/read-back ON.
+- PCA9554 active-HIGH safe startup preloads relay bits LOW/OFF before output configuration.
+- Relay writes are read back from PCA9554 before logical state is accepted.
+
+RS485 / INTEGRATION
+- Protocol version: v3.
+- Indoor request length: 3 bytes.
+- Outdoor status response length: 46 bytes.
+- Indoor and Outdoor protocol headers are byte-for-byte identical.
+- Dual-status pure C++ priority test passed.
+- Shared protocol static-assert build test passed.
+- Indoor -> Display monitoring JSON keys match Display parser keys.
+
+HOST-SIDE EXECUTION TESTS
+- Actual production local_switches.h harness passed:
+  boot OFF guard, 1500 ms ON qualification, immediate OFF, bounce restart, fan selector debounce, blank hold-last-speed.
+- Actual production Outdoor IO.h relay-control harness passed:
+  no authorization OFF, healthy restart qualification, both circuits ON, Circuit A fault immediate drop, system OFF all relays OFF, active-HIGH OFF bits LOW.
+
+LIMITATION
+- PlatformIO/ESP32 toolchain is not installed in this environment, so the final ESP32 firmware compile/upload and electrical hardware verification must still be performed on the target boards.

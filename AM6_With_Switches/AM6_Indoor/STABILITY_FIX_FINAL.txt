@@ -1,0 +1,4 @@
+AM6 INDOOR FINAL STABILITY FIX
+
+- Prevents transient control/link events from cycling relays.
+- Matched with the other projects in AM6_COMPLETE_STABILITY_FINAL.zip.

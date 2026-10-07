@@ -1,0 +1,55 @@
+AM6 Indoor <-> Outdoor RS485 protocol v3
+==========================================
+
+Frame:
+AA 55 DEST SRC TYPE LEN PAYLOAD CRC_LO CRC_HI
+CRC16-CCITT, polynomial 0x1021, initial value 0xFFFF.
+
+0x30 Indoor -> Outdoor status/power request (LEN=3)
+[0] protocol version = 3
+[1] system_power (0/1)
+[2] outdoorsw (0/1)
+
+0xB0 Outdoor -> Indoor status response (LEN=46)
+[0]      protocol version = 3
+[1]      system_power echo
+[2]      outdoorsw echo
+[3]      effective Outdoor power
+[4]      statusout  - Circuit A (SW1..SW4 -> R1/R3)
+[5]      statusoutB - Circuit B (SW5..SW8 -> R2/R4)
+[6]      role temperature valid mask
+[7]      physical temperature valid mask
+[8..19] 6 role temperatures, int16 x0.1 C
+[20..31] 6 physical temperatures, int16 x0.1 C
+[32..35] R1..R4 states
+[36]     switch PCF8574 healthy
+[37]     relay PCA9554 healthy/configured
+[38..45] SW1..SW8 logical healthy states
+
+Status values for BOTH statusout and statusoutB:
+0 = Stopped
+1 = Running
+2 = High PSI
+3 = Low PSI
+4 = Power Fault
+5 = Overload / Tripped
+
+Circuit A / statusout:
+SW1 = outhipsiA
+SW2 = outlopsiA
+SW3 = outoverloadA
+SW4 = outpowerA
+R1 + R3 are Circuit A relays.
+Priority: High PSI -> Low PSI -> Power Fault -> Overload -> Running.
+
+Circuit B / statusoutB:
+SW5 = outhipsiB
+SW6 = outlopsiB
+SW7 = outoverloadB
+SW8 = outpowerB
+R2 + R4 are Circuit B relays.
+Priority: High PSI -> Low PSI -> Power Fault -> Overload -> Running.
+
+System power=0 or outdoorsw=0 => BOTH statuses are Stopped (0).
+Switch-expander or relay-expander hardware failure => BOTH statuses report Power Fault (4).
+Each circuit's switch faults are otherwise independent of the other circuit.

@@ -1,0 +1,12 @@
+AM6 OUTDOOR DUAL-STATUS VERIFICATION
+====================================
+Protocol version: 3
+Status request 0x30: 3 bytes
+Status response 0xB0: 46 bytes
+Circuit A statusout: byte 4
+Circuit B statusoutB: byte 5
+Circuit A: SW1..SW4 -> R1/R3
+Circuit B: SW5..SW8 -> R2/R4
+Priority per circuit: High PSI -> Low PSI -> Power Fault -> Overload/Tripped -> Running
+Outdoor slave power/failsafe behavior preserved.
+Temperature/configuration B1/B2 protocol preserved.
