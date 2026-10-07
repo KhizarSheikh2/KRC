@@ -1,0 +1,30 @@
+AM6 Outdoor - Industrial 5 Second Circuit Restart Delay
+========================================================
+
+This build adds an independent NON-BLOCKING 5000 ms healthy qualification to
+both Outdoor protection circuits.
+
+Circuit A: SW1..SW4 -> R1/R3 -> statusout
+Circuit B: SW5..SW8 -> R2/R4 -> statusoutB
+
+STARTUP
+-------
+After a valid Indoor power=1 + outdoorEnable=1 request, each healthy circuit
+starts its own 5000 ms timer. Its relay pair remains OFF during the timer.
+The existing 1500 ms master re-arm guard runs inside that 5000 ms window; it
+is not added on top. Therefore a continuously healthy circuit may energize
+about 5 seconds after the valid Outdoor start request.
+
+FAULT
+-----
+Any protection fault drops only the affected relay pair immediately and
+resets only that circuit's timer.
+
+FAULT RECOVERY
+--------------
+After all four protection inputs for that circuit become healthy again, that
+circuit must remain continuously healthy for 5000 ms before its relay pair is
+allowed ON again.
+
+Circuit A and Circuit B qualify independently. No delay() blocking is used;
+RS485, protection reads, temperatures and safety monitoring continue running.

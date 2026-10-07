@@ -48,3 +48,14 @@ Serial Monitor
 --------------
 115200 baud. The firmware prints I2C health, switch states, relay states,
 temperatures, sensor configuration, and RS485 request/response information.
+
+2026-10-07 - 5 SECOND INDUSTRIAL CIRCUIT RESTART DELAY
+------------------------------------------------------
+- OUTDOOR_CIRCUIT_RESTART_DELAY_MS = 5000 ms.
+- Applies independently to Circuit A (R1/R3) and Circuit B (R2/R4).
+- Applies on normal system startup and after the affected circuit recovers
+  from High PSI, Low PSI, Power Fault or Overload/Tripped.
+- Fault shutdown remains immediate.
+- Timer is non-blocking; RS485 and all protection monitoring continue.
+- Existing master re-arm runs concurrently inside the 5-second circuit delay,
+  so it is not an extra 1.5 seconds added to normal Outdoor startup.

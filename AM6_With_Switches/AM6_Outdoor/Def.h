@@ -84,10 +84,13 @@
 #define INDOOR_COMMAND_TIMEOUT_MS 6000UL
 
 // Industrial restart guards. A fresh master power=1 command must remain valid
-// before Outdoor relay control is armed, and each protection circuit must stay
-// continuously healthy before its relay pair is allowed to restart.
+// before Outdoor relay control is armed. Each protection circuit also has its
+// own NON-BLOCKING 5-second healthy qualification. The circuit timer starts as
+// soon as the master run request is valid and local protections are healthy,
+// so the normal system-start delay is 5 seconds (not 1.5 s + 5 s). Any circuit
+// fault drops its relay pair immediately and resets only that circuit's timer.
 #define OUTDOOR_MASTER_REARM_DELAY_MS     1500UL
-#define OUTDOOR_CIRCUIT_RESTART_DELAY_MS 1000UL
+#define OUTDOOR_CIRCUIT_RESTART_DELAY_MS 5000UL
 #define SWITCH_I2C_FAILURE_GRACE_MS       300UL
 
 // =====================================================

@@ -462,10 +462,99 @@ void controlRelays()
   static bool previousTargetB = false;
   static bool firstNormalEvaluation = true;
 
+  // Each circuit owns its restart timer. These timers are deliberately
+  // independent so Circuit A can recover without disturbing Circuit B.
   static bool circuitAQualified = false;
   static bool circuitBQualified = false;
   static unsigned long circuitAHealthySinceMs = 0;
   static unsigned long circuitBHealthySinceMs = 0;
+
+  const unsigned long now = millis();
+  const bool commandFresh = validIndoorCommandSeen &&
+                            (now - lastValidIndoorCommandMs <= INDOOR_COMMAND_TIMEOUT_MS);
+
+  const bool circuitAHealthy = switchState[0] && switchState[1] &&
+                               switchState[2] && switchState[3];
+  const bool circuitBHealthy = switchState[4] && switchState[5] &&
+                               switchState[6] && switchState[7];
+
+  // Qualification may run while the short master re-arm guard is still active.
+  // This avoids stacking 1.5 s + 5 s on a normal startup. Relays are STILL held
+  // OFF until outdoorMasterArmed becomes true; only the healthy timer runs.
+  const bool qualificationAllowed = commandFresh &&
+                                    systemPower == 1 &&
+                                    outdoorEnable == 1 &&
+                                    switchPcfHealthy &&
+                                    relayPcaHealthy &&
+                                    relayPcaConfigured;
+
+  if (!qualificationAllowed)
+  {
+    circuitAQualified = false;
+    circuitBQualified = false;
+    circuitAHealthySinceMs = 0;
+    circuitBHealthySinceMs = 0;
+  }
+  else
+  {
+    // ------------------------------------------------------------
+    // CIRCUIT A: SW1..SW4 -> R1/R3
+    // Fault = immediate OFF + timer reset.
+    // Healthy again = continuous 5-second qualification before restart.
+    // ------------------------------------------------------------
+    if (!circuitAHealthy)
+    {
+      if (circuitAQualified || circuitAHealthySinceMs != 0)
+        Serial.println("[RELAY][A] Protection fault -> R1/R3 OFF immediately; 5 s restart timer reset");
+
+      circuitAQualified = false;
+      circuitAHealthySinceMs = 0;
+    }
+    else if (!circuitAQualified)
+    {
+      if (circuitAHealthySinceMs == 0)
+      {
+        circuitAHealthySinceMs = now;
+        Serial.print("[RELAY][A] Protections healthy -> waiting ");
+        Serial.print(OUTDOOR_CIRCUIT_RESTART_DELAY_MS);
+        Serial.println(" ms before R1/R3 may start");
+      }
+      else if (now - circuitAHealthySinceMs >= OUTDOOR_CIRCUIT_RESTART_DELAY_MS)
+      {
+        circuitAQualified = true;
+        Serial.println("[RELAY][A] 5 s healthy qualification complete -> R1/R3 permitted ON");
+      }
+    }
+
+    // ------------------------------------------------------------
+    // CIRCUIT B: SW5..SW8 -> R2/R4
+    // Fault = immediate OFF + timer reset.
+    // Healthy again = continuous 5-second qualification before restart.
+    // ------------------------------------------------------------
+    if (!circuitBHealthy)
+    {
+      if (circuitBQualified || circuitBHealthySinceMs != 0)
+        Serial.println("[RELAY][B] Protection fault -> R2/R4 OFF immediately; 5 s restart timer reset");
+
+      circuitBQualified = false;
+      circuitBHealthySinceMs = 0;
+    }
+    else if (!circuitBQualified)
+    {
+      if (circuitBHealthySinceMs == 0)
+      {
+        circuitBHealthySinceMs = now;
+        Serial.print("[RELAY][B] Protections healthy -> waiting ");
+        Serial.print(OUTDOOR_CIRCUIT_RESTART_DELAY_MS);
+        Serial.println(" ms before R2/R4 may start");
+      }
+      else if (now - circuitBHealthySinceMs >= OUTDOOR_CIRCUIT_RESTART_DELAY_MS)
+      {
+        circuitBQualified = true;
+        Serial.println("[RELAY][B] 5 s healthy qualification complete -> R2/R4 permitted ON");
+      }
+    }
+  }
 
   // ------------------------------------------------------------
   // MASTER SAFETY GATES
@@ -473,7 +562,7 @@ void controlRelays()
   int inhibitReason = 0;
 
   if (!validIndoorCommandSeen) inhibitReason = 5;
-  else if (millis() - lastValidIndoorCommandMs > INDOOR_COMMAND_TIMEOUT_MS) inhibitReason = 6;
+  else if (!commandFresh) inhibitReason = 6;
   else if (systemPower != 1) inhibitReason = 3;
   else if (outdoorEnable != 1) inhibitReason = 4;
   else if (!outdoorMasterArmed) inhibitReason = 7;
@@ -500,13 +589,10 @@ void controlRelays()
         Serial.println("[RELAY] INHIBIT: master restart guard active -> all relays OFF");
     }
 
-    // Any inhibit cancels circuit restart qualification. Recovery must be
-    // continuously healthy again; this is what prevents ON/OFF relay chatter.
-    circuitAQualified = false;
-    circuitBQualified = false;
-    circuitAHealthySinceMs = 0;
-    circuitBHealthySinceMs = 0;
-
+    // IMPORTANT: the circuit healthy timers are NOT reset merely because the
+    // short master re-arm guard (reason 7) is active. This makes startup a true
+    // 5-second circuit delay instead of 1.5 + 5 seconds. Every real OFF,
+    // communication loss, I2C fault, or protection fault resets qualification.
     forceAllRelaysOff();
     previousInhibitReason = inhibitReason;
     firstNormalEvaluation = true;
@@ -516,70 +602,15 @@ void controlRelays()
   }
 
   if (previousInhibitReason != 0)
-    Serial.println("[RELAY] Master armed -> qualifying Outdoor circuits");
+    Serial.println("[RELAY] Master armed -> circuit qualification in progress/complete");
 
   previousInhibitReason = 0;
-
-  // ------------------------------------------------------------
-  // CIRCUIT PROTECTION LOGIC
-  // Circuit A: SW1..SW4 -> R1/R3
-  // Circuit B: SW5..SW8 -> R2/R4
-  // Any fault drops the pair IMMEDIATELY. Recovery must remain healthy for
-  // OUTDOOR_CIRCUIT_RESTART_DELAY_MS before the pair can energize again.
-  // ------------------------------------------------------------
-  const bool circuitAHealthy = switchState[0] && switchState[1] &&
-                               switchState[2] && switchState[3];
-  const bool circuitBHealthy = switchState[4] && switchState[5] &&
-                               switchState[6] && switchState[7];
-  const unsigned long now = millis();
-
-  if (!circuitAHealthy)
-  {
-    circuitAQualified = false;
-    circuitAHealthySinceMs = 0;
-  }
-  else if (!circuitAQualified)
-  {
-    if (circuitAHealthySinceMs == 0)
-    {
-      circuitAHealthySinceMs = now;
-      Serial.print("[RELAY][A] SW1..SW4 healthy -> restart delay ");
-      Serial.print(OUTDOOR_CIRCUIT_RESTART_DELAY_MS);
-      Serial.println(" ms");
-    }
-    else if (now - circuitAHealthySinceMs >= OUTDOOR_CIRCUIT_RESTART_DELAY_MS)
-    {
-      circuitAQualified = true;
-      Serial.println("[RELAY][A] Protection inputs stable -> R1/R3 permitted ON");
-    }
-  }
-
-  if (!circuitBHealthy)
-  {
-    circuitBQualified = false;
-    circuitBHealthySinceMs = 0;
-  }
-  else if (!circuitBQualified)
-  {
-    if (circuitBHealthySinceMs == 0)
-    {
-      circuitBHealthySinceMs = now;
-      Serial.print("[RELAY][B] SW5..SW8 healthy -> restart delay ");
-      Serial.print(OUTDOOR_CIRCUIT_RESTART_DELAY_MS);
-      Serial.println(" ms");
-    }
-    else if (now - circuitBHealthySinceMs >= OUTDOOR_CIRCUIT_RESTART_DELAY_MS)
-    {
-      circuitBQualified = true;
-      Serial.println("[RELAY][B] Protection inputs stable -> R2/R4 permitted ON");
-    }
-  }
 
   const bool targetA = circuitAHealthy && circuitAQualified;
   const bool targetB = circuitBHealthy && circuitBQualified;
 
-  // Faults must drop relays immediately. Healthy recovery is deliberately
-  // delayed by the qualification logic above.
+  // Faults drop relays immediately. Healthy recovery is deliberately delayed
+  // by the independent 5-second qualification above.
   const bool targetChanged = firstNormalEvaluation ||
                              targetA != previousTargetA ||
                              targetB != previousTargetB ||
@@ -609,7 +640,7 @@ void controlRelays()
     }
   }
 
-  // These state flags now mean "PCA9554 output command written AND read back".
+  // These state flags mean "PCA9554 output command written AND read back".
   R1_State = targetA;
   R3_State = targetA;
   R2_State = targetB;
