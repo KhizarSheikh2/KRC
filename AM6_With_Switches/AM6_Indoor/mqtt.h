@@ -9,14 +9,18 @@ bool parseFloatValue(JsonVariantConst value, float& parsedValue);
 bool parseRoleValue(JsonVariantConst value, uint8_t maxRole, uint8_t& parsedRole);
 
 inline bool isValidTemperature(float value) {
-  return value != SENSOR_DISCONNECTED && !isnan(value);
+  return value != SENSOR_DISCONNECTED &&
+         value != SENSOR_NOT_SELECTED &&
+         !isnan(value);
 }
 
 inline float mqttTemperatureValue(float value) {
+  if (value == SENSOR_NOT_SELECTED) return SENSOR_NOT_SELECTED;
   return isValidTemperature(value) ? value : SENSOR_DISCONNECTED;
 }
 
 inline int tempCToFahrenheitInt(float tempC) {
+  if (tempC == SENSOR_NOT_SELECTED) return 999;
   if (!isValidTemperature(tempC)) return 888;
   return static_cast<int>(roundf((tempC * 9.0f / 5.0f) + 32.0f));
 }
@@ -34,9 +38,39 @@ inline float getOutdoorPhysicalTemperature(uint8_t index) {
   return outdoorSensorRawTempC[index] + outdoorSensorOffset[index];
 }
 
-inline float appTemperatureValue(float value) {
-  if (!isValidTemperature(value)) return SENSOR_DISCONNECTED;
-  return roundf(value * 10.0f) / 10.0f;
+inline int appTemperatureValue(float value) {
+  // AM6 temperature-state contract:
+  //   999 = role not assigned/configured
+  //   888 = role assigned, but sensor unavailable/disconnected
+  //   otherwise a whole-degree temperature.
+  if (value == SENSOR_NOT_SELECTED) return 999;
+  if (!isValidTemperature(value)) return 888;
+  return static_cast<int>(lroundf(value));
+}
+
+inline float getIndoorRoleTemperature(uint8_t role) {
+  if (role < 1 || role > INDOOR_SENSOR_COUNT) return SENSOR_NOT_SELECTED;
+
+  if (!isIndoorRoleAssigned(role)) return SENSOR_NOT_SELECTED;
+
+  // A role is assigned persistently, but its sensor may currently be absent.
+  for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; ++i) {
+    if (tempSensorPresent[i] && tempSensorRole[i] == role) {
+      return getIndoorPhysicalTemperature(i);
+    }
+  }
+  return SENSOR_DISCONNECTED;
+}
+
+inline float getOutdoorRoleTemperatureForPublish(uint8_t role) {
+  if (role < 1 || role > OUTDOOR_SENSOR_COUNT) return SENSOR_NOT_SELECTED;
+  const uint8_t index = static_cast<uint8_t>(role - 1);
+
+  // Outdoor encodes 9990 over RS485 when the role is not assigned, and 8880
+  // when it is assigned but the sensor is unavailable. Preserve that meaning.
+  if (outdoorRoleTempC[index] == SENSOR_NOT_SELECTED) return SENSOR_NOT_SELECTED;
+  if (!outdoorRoleTempValid[index]) return SENSOR_DISCONNECTED;
+  return outdoorRoleTempC[index];
 }
 
 inline float appOffsetValue(float value) {
@@ -107,7 +141,7 @@ inline int fanSpeedToMqttFanSw() {
 }
 
 inline int effectiveOutdoorStatusForPublish() {
-  if (system_power == 0 || outdoor_sw == 0) return OUT_STATUS_STOPPED;
+  if (system_power == 0 || outdoor_sw == 0 || hvac_mode == MODE_HEAT) return OUT_STATUS_STOPPED;
   if (!rs485_outdoor_online)
     return rs485_outdoor_link_fault_confirmed ? OUT_STATUS_POWER_FAULT
                                               : OUT_STATUS_STOPPED;
@@ -119,7 +153,7 @@ inline int effectiveOutdoorStatusForPublish() {
 }
 
 inline int effectiveOutdoorStatusBForPublish() {
-  if (system_power == 0 || outdoor_sw == 0) return OUT_STATUS_STOPPED;
+  if (system_power == 0 || outdoor_sw == 0 || hvac_mode == MODE_HEAT) return OUT_STATUS_STOPPED;
   if (!rs485_outdoor_online)
     return rs485_outdoor_link_fault_confirmed ? OUT_STATUS_POWER_FAULT
                                               : OUT_STATUS_STOPPED;
@@ -180,7 +214,9 @@ void publishIndoorTemps() {
   StaticJsonDocument<4096> doc;
   for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; i++) {
     const String key = "temp" + String(i + 1) + "in";
-    doc[key] = appTemperatureValue(getIndoorPhysicalTemperature(i));
+    // temp1in..temp6in are CONFIGURED ROLE slots, not discovery order.
+    // Unassigned roles publish 999; assigned-but-disconnected roles publish 888.
+    doc[key] = appTemperatureValue(getIndoorRoleTemperature(static_cast<uint8_t>(i + 1)));
   }
 
   publishDocument(device_topic_p_indoor_temps, doc);
@@ -195,7 +231,9 @@ void publishOutdoorTemps() {
   StaticJsonDocument<4096> doc;
   for (uint8_t i = 0; i < OUTDOOR_SENSOR_COUNT; i++) {
     const String key = "temp" + String(i + 1) + "out";
-    doc[key] = appTemperatureValue(getOutdoorPhysicalTemperature(i));
+    // temp1out..temp6out are CONFIGURED ROLE slots received from Outdoor.
+    // Unassigned roles publish 999; assigned-but-disconnected roles publish 888.
+    doc[key] = appTemperatureValue(getOutdoorRoleTemperatureForPublish(static_cast<uint8_t>(i + 1)));
   }
 
   publishDocument(device_topic_p_outdoor_temps, doc);
@@ -230,7 +268,7 @@ void publishIndoorSensorConfig() {
     }
 
     const String addressString = getAddressString(tempSensorAddresses[i]);
-    const float tempValue = appTemperatureValue(getIndoorPhysicalTemperature(i));
+    const int tempValue = appTemperatureValue(getIndoorPhysicalTemperature(i));
     const float offsetValue = appOffsetValue(tempSensorOffset[i]);
     const int roleValue = static_cast<int>(tempSensorRole[i]);
 
@@ -282,7 +320,7 @@ void publishOutdoorSensorConfig() {
     }
 
     const String addressString = getAddressString(outdoorSensorAddresses[i]);
-    const float tempValue = appTemperatureValue(getOutdoorPhysicalTemperature(i));
+    const int tempValue = appTemperatureValue(getOutdoorPhysicalTemperature(i));
     const float offsetValue = appOffsetValue(outdoorSensorOffset[i]);
     const int roleValue = static_cast<int>(outdoorSensorRole[i]);
 
@@ -538,6 +576,7 @@ void Extract_control_json(String incomingMessage) {
 
   if (received_doc.containsKey("setPoint")) {
     hasSetPoint = parseFloatValue(received_doc["setPoint"], requestedSetPoint);
+    if (hasSetPoint) requestedSetPoint = roundf(requestedSetPoint);
   }
 
   // LOCAL SWITCH AUTHORITY:
@@ -609,14 +648,27 @@ inline bool addressFieldMatches(const StaticJsonDocument<4096>& doc,
                                 const String& addressString) {
   const String addressKey = "address" + String(index + 1);
   if (!doc.containsKey(addressKey)) return true; // slot-only legacy packet
+
   String supplied = doc[addressKey].as<String>();
   supplied.trim();
   supplied.toLowerCase();
-  return supplied.isEmpty() || supplied == addressString;
+
+  String canonicalAddress = addressString;
+  canonicalAddress.toLowerCase();
+  String legacyAlias = sensorAliasKey(index);  // sensor01..sensor06
+  legacyAlias.toLowerCase();
+  String shortAlias = sensorAliasKeyShort(index); // sensor1..sensor6
+  shortAlias.toLowerCase();
+
+  // Accept the real ROM address (preferred) and the application's older
+  // sensor01/sensor1 address aliases. This makes the receive path compatible
+  // with both AM2-style ROM packets and the AM6 mobile-app slot format.
+  return supplied.isEmpty() || supplied == canonicalAddress ||
+         supplied == legacyAlias || supplied == shortAlias;
 }
 
 // =====================================================
-// RECEIVED: /test/AM6-AAA001/4  (Indoor sensor config)
+// RECEIVED: /test/AM6-AAA001/3  (Indoor sensor config)
 // Accepted role formats:
 //   "<16HEX-ROM>": 3
 //   "sensor01": 3       (legacy/mobile-app slot alias)
@@ -690,7 +742,7 @@ void Extract_indoor_sensor_config(String incomingMessage) {
 }
 
 // =====================================================
-// RECEIVED: /test/AM6-AAA001/3  (Outdoor sensor config)
+// RECEIVED: /test/AM6-AAA001/4  (Outdoor sensor config)
 // The command is cached if the Outdoor ROM snapshot has not arrived yet.
 // Once the snapshot is available it is replayed automatically.
 // =====================================================
@@ -822,6 +874,86 @@ void DEVICE_INIT() {
   Serial.println("Authoritative boot power remains OFF until GPIO19 is sampled");
 }
 
+
+// Detect whether a sensor-config JSON explicitly references Indoor and/or
+// Outdoor ROM addresses.  This lets firmware recover gracefully when the
+// mobile app publishes a ROM-based packet on /3 vs /4 incorrectly.
+// App contract: /3=Indoor and /4=Outdoor.
+inline uint8_t detectSensorConfigRomTarget(const String& incomingMessage) {
+  String lower = incomingMessage;
+  lower.toLowerCase();
+
+  uint8_t target = 0; // bit0=Indoor, bit1=Outdoor
+
+  for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; ++i) {
+    if (!tempSensorPresent[i]) continue;
+    String rom = getAddressString(tempSensorAddresses[i]);
+    rom.toLowerCase();
+    if (rom.length() == 16 && lower.indexOf(rom) >= 0) {
+      target |= 0x01;
+      break;
+    }
+  }
+
+  if (outdoorConfigSnapshotValid) {
+    for (uint8_t i = 0; i < OUTDOOR_SENSOR_COUNT; ++i) {
+      if (!outdoorSensorPresent[i]) continue;
+      String rom = getAddressString(outdoorSensorAddresses[i]);
+      rom.toLowerCase();
+      if (rom.length() == 16 && lower.indexOf(rom) >= 0) {
+        target |= 0x02;
+        break;
+      }
+    }
+  }
+
+  return target;
+}
+
+inline void routeSensorConfigPacket(const String& incomingMessage, bool topicIsOutdoor) {
+  const uint8_t target = detectSensorConfigRomTarget(incomingMessage);
+
+  // Explicit ROM addresses are authoritative.  If the app accidentally uses
+  // the opposite topic, route by ROM ownership instead of silently rejecting
+  // the configuration and then republishing role=0.
+  if (target == 0x01) {
+    if (topicIsOutdoor) {
+      Serial.println("[MQTT][CONFIG ROUTER] WARNING: /4 packet contains Indoor ROM(s); auto-routing to Indoor config");
+    } else {
+      Serial.println("[MQTT][CONFIG ROUTER] Indoor ROM packet confirmed");
+    }
+    Extract_indoor_sensor_config(incomingMessage);
+    return;
+  }
+
+  if (target == 0x02) {
+    if (!topicIsOutdoor) {
+      Serial.println("[MQTT][CONFIG ROUTER] WARNING: /3 packet contains Outdoor ROM(s); auto-routing to Outdoor config");
+    } else {
+      Serial.println("[MQTT][CONFIG ROUTER] Outdoor ROM packet confirmed");
+    }
+    Extract_outdoor_sensor_config(incomingMessage);
+    return;
+  }
+
+  if (target == 0x03) {
+    Serial.println("[MQTT][CONFIG ROUTER] Mixed Indoor+Outdoor ROM packet; applying each matching ROM to its own bus");
+    Extract_indoor_sensor_config(incomingMessage);
+    Extract_outdoor_sensor_config(incomingMessage);
+    return;
+  }
+
+  // No explicit known ROM was present (for example old sensor01 aliases).
+  // Preserve the documented topic behavior for backward compatibility.
+  if (topicIsOutdoor) {
+    Serial.println("[MQTT][CONFIG ROUTER] No explicit known ROM; using app-contract /4 Outdoor route");
+    Extract_outdoor_sensor_config(incomingMessage);
+  } else {
+    Serial.println("[MQTT][CONFIG ROUTER] No explicit known ROM; using app-contract /3 Indoor route");
+    Extract_indoor_sensor_config(incomingMessage);
+  }
+}
+
 void callback(char* topic, byte* message, unsigned int length) {
   String messageTemp;
   messageTemp.reserve(length + 1U);
@@ -844,13 +976,13 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.println("[MQTT][RX] Route   : CONTROL (/2)");
     Extract_control_json(messageTemp);
   }
-  else if (receivedTopic == device_topic_s_outdoor_sensor) {
-    Serial.println("[MQTT][RX] Route   : OUTDOOR SENSOR CONFIG (/3)");
-    Extract_outdoor_sensor_config(messageTemp);
-  }
   else if (receivedTopic == device_topic_s_indoor_sensor) {
-    Serial.println("[MQTT][RX] Route   : INDOOR SENSOR CONFIG (/4)");
-    Extract_indoor_sensor_config(messageTemp);
+    Serial.println("[MQTT][RX] Route   : SENSOR CONFIG (/3, Indoor)");
+    routeSensorConfigPacket(messageTemp, false);
+  }
+  else if (receivedTopic == device_topic_s_outdoor_sensor) {
+    Serial.println("[MQTT][RX] Route   : SENSOR CONFIG (/4, Outdoor)");
+    routeSensorConfigPacket(messageTemp, true);
   }
   else {
     Serial.println("[MQTT][RX] Route   : IGNORED (unknown topic)");

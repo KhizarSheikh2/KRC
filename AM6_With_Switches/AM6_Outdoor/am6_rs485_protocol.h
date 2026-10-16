@@ -38,7 +38,7 @@ static constexpr uint8_t AM6_RS485_STATUS_CODE_A = 4;
 static constexpr uint8_t AM6_RS485_STATUS_CODE_B = 5;
 static constexpr uint8_t AM6_RS485_STATUS_ROLE_VALID_MASK = 6;
 static constexpr uint8_t AM6_RS485_STATUS_PHYSICAL_VALID_MASK = 7;
-static constexpr uint8_t AM6_RS485_STATUS_ROLE_TEMP_BASE = 8;      // 6 x int16, 0.1 C
+static constexpr uint8_t AM6_RS485_STATUS_ROLE_TEMP_BASE = 8;      // 6 x int16, 0.1 C; 9990=unassigned, 8880=assigned/unavailable
 static constexpr uint8_t AM6_RS485_STATUS_PHYSICAL_TEMP_BASE = 20; // 6 x int16, 0.1 C
 static constexpr uint8_t AM6_RS485_STATUS_RELAY_BASE = 32;         // R1..R4
 static constexpr uint8_t AM6_RS485_STATUS_SWITCH_PCF_HEALTHY = 36;

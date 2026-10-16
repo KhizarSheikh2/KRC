@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Panel for RMS#1</title>
+  <style>
+    /* General Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #1a1a2e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .menu {
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #0f3460;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-bottom: 80px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      max-width: 600px;
+      width: 100%;
+      margin-top: -50px;
+    }
+
+    .box {
+      position: absolute;
+      top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #0f3460;
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 1.2em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .box-left {
+      left: 20px;
+    }
+
+    .box-right {
+      right: 20px;
+    }
+
+    .label-box {
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .value {
+      color: #ffffff;
+      margin-bottom: 0px;
+    }
+
+    .control {
+      background: linear-gradient(145deg, #b0b0b6, #d1d1e0);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s;
+    }
+
+
+    .control:hover {
+      transform: translateY(-5px);
+    }
+
+    .icon {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .label {
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .toggle {
+      padding: 8px 15px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .on {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .off {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .toggle:hover {
+      opacity: 0.8;
+    }
+
+    .tf {
+      background-color: #dc3545;
+      color: white;
+      padding: 8px 15px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .tr {
+      background-color: #28a745;
+      color: white;
+      padding: 8px 15px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .ttbox {
+      display: flex;
+      /* Use flexbox for alignment */
+      justify-content: space-between;
+      /* Ensure boxes are spread out */
+      align-items: center;
+      /* Center vertically */
+      flex-wrap: wrap;
+      /* Allow items to wrap on smaller screens */
+      width: 100%;
+      /* Occupy full width */
+      margin-top: 20px;
+      /* Adjust spacing */
+      padding: 10px;
+      border-radius: 10px;
+      /* Optional: Rounded corners */
+      gap: 15px;
+      /* Add spacing between items when wrapping */
+    }
+
+    .box {
+      flex: 1;
+      /* Each box takes equal width */
+      min-width: 150px;
+      /* Ensure a minimum width for each box */
+      display: flex;
+      flex-direction: column;
+      /* Stack content */
+      align-items: flex-start;
+    }
+
+    .label-box {
+      font-size: 14px;
+      font-weight: bold;
+      color: #FFF;
+    }
+
+    .value {
+      font-size: 16px;
+      color: #007BFF;
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .container {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      }
+
+      .label {
+        font-size: 14px;
+      }
+
+      .toggle {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+
+      .tr {
+        font-size: 12px;
+      }
+
+      .tf {
+        font-size: 12px;
+      }
+
+      .ttbox {
+        flex-direction: column;
+        /* Stack boxes vertically on smaller screens */
+        align-items: center;
+        /* Center align for better aesthetics */
+        text-align: center;
+        /* Center text alignment */
+        margin-bottom: -280px;
+      }
+
+      .box {
+        align-items: center;
+        /* Center items within each box */
+      }
+
+      .menu {
+        margin-top: 300px;
+      }
+
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ttbox">
+    <div class="box box-left">
+      <span class="label-box">🕙Current Time:</span><span id="TIME" class="value">%time%</span>
+    </div>
+    <div class="box box-right">
+      <span class="label-box">🌡️Current Temperature:</span>
+      <span id="TEMP" class="value">%temp% °C</span>
+    </div>
+  </div>
+  <div class="menu">🚪 BITA Room Management System</div>
+  <div class="container">
+    <div class="control">
+      <div class="icon">💡</div>
+      <div class="label"><a href="load1.html">LOAD 1</a></div>
+      <button class="toggle off" id="toggle-1" onclick="toggleButton1(this, 'toggle-1')">OFF</button>
+    </div>
+    <div class="control">
+      <div class="icon">💡</div>
+      <div class="label"><a href="load2.html">LOAD 2</a></div>
+      <button class="toggle off" id="toggle-2" onclick="toggleButton2(this, 'toggle-2')">OFF</button>
+    </div>
+    <div class="control">
+      <div class="icon">💡</div>
+      <div class="label"><a href="load3.html">LOAD 3</a></div>
+      <button class="toggle off" id="toggle-6" onclick="toggleButton6(this, 'toggle-6')">OFF</button>
+    </div>
+    <div class="control">
+      <div class="icon">🖥️</div>
+      <div class="label">LED TV</div>
+      <button class="toggle off" id="toggle-3" onclick="toggleButton3(this, 'toggle-3')">OFF</button>
+    </div>
+    <div class="control">
+      <div id="dxcoil">
+        <div class="icon"><span style="color: rgb(7, 168, 221);">✇</span></div>
+        <div class="label"> <a href="fancoilunit.html">FAN Coil Unit</a></div>
+        <button class="toggle off" id="toggle-4" onclick="toggleButton4(this, 'toggle-4')">OFF</button>
+      </div>
+    </div>
+    <div class="control">
+      <div class="icon">🎞️</div>
+      <div class="label">CURTAIN</div>
+      <!-- <button class="tf">F</button>
+      <button class="tr">R</button> -->
+      <button type="button" id="curtainbtn1" onclick="curtainoff()" class="tf">F</button>
+      <button type="button" id="curtainbtn2" onclick="curtainon()" class="tr">R</button>
+
+    </div>
+    <div class="control">
+      <div class="icon">⏹️</div>
+      <div class="label"><a href="damper.html">DAMPER</a></div>
+      <button class="toggle off" id="toggle-5" onclick="toggleButton5(this, 'toggle-5')">OFF</button>
+    </div>
+    <div class="control">
+      <div class="icon">🏬</div>
+      <div class="label">SHUTTER</div>
+
+      <button type="button" id="shutterbtn1" onclick="shutteron()" class="tf">U</button>
+      <button type="button" id="shutterbtn2" onclick="shutteroff()" class="tr">D</button>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    var light1switch = 0;
+    var light2switch = 0;
+    var light3switch = 0;
+    var damperswitch = 0;
+    var dxcoil_switch = 0;
+    var shutterswitch = 0;
+    var TVswitch = 0;
+    var curtainswitch = 0;
+    var seasonswitch = 0;
+    var setpoint = 0;
+    var intensity = 0;
+    var cfm = 0;
+    var datatoesp = "";
+
+
+    function toggleButton1(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        light1on();
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        light1off();
+      }
+    }
+
+    function toggleButton2(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        light2on();
+        // localStorage.setItem(id, "on"); // Save state in localStorage
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        light2off();
+        // // localStorage.setItem(id, "off"); // Save state in localStorage
+      }
+    }
+
+    function toggleButton6(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        light3on();
+        // localStorage.setItem(id, "on"); // Save state in localStorage
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        light3off();
+        // // localStorage.setItem(id, "off"); // Save state in localStorage
+      }
+    }
+
+    function toggleButton3(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        TVon();
+        // // localStorage.setItem(id, "on"); // Save state in localStorage
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        TVoff();
+        // // localStorage.setItem(id, "off"); // Save state in localStorage
+      }
+    }
+
+    function toggleButton4(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        dx_coil_on();
+        // // localStorage.setItem(id, "on"); // Save state in localStorage
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        dx_coil_off();
+        // // localStorage.setItem(id, "off"); // Save state in localStorage
+      }
+    }
+
+    function toggleButton5(button, id) {
+      if (button.classList.contains("off")) {
+        button.classList.remove("off");
+        button.classList.add("on");
+        button.textContent = "ON";
+        damperauto();
+        // // localStorage.setItem(id, "on"); // Save state in localStorage
+      } else {
+        button.classList.remove("on");
+        button.classList.add("off");
+        button.textContent = "OFF";
+        damperoff();
+        // // localStorage.setItem(id, "off"); // Save state in localStorage
+      }
+    }
+
+    // function loadToggleStates() {
+    //   const toggles = document.querySelectorAll(".toggle");
+
+    //   toggles.forEach(toggle => {
+    //     const id = toggle.id;
+    //     const savedState = localStorage.getItem(id);
+
+    //     if (savedState === "on") {
+    //       toggle.classList.remove("off");
+    //       toggle.classList.add("on");
+    //       toggle.textContent = "ON";
+    //     } else {
+    //       toggle.classList.remove("on");
+    //       toggle.classList.add("off");
+    //       toggle.textContent = "OFF";
+    //     }
+    //   });
+    // }
+    // window.onload = loadToggleStates;
+
+
+
+    var counterSpan = document.getElementById('intensity');
+    var counterSpan4 = document.getElementById('intensity1');
+    var incrementBtn = document.getElementById('light1btnplus');
+    var decrementBtn = document.getElementById('light1btnminus');
+    var incrementBtn4 = document.getElementById('light2btnplus');
+    var decrementBtn4 = document.getElementById('light2btnminus');
+    var incrementBtn5 = document.getElementById('light3btnplus');
+    var decrementBtn5 = document.getElementById('light3btnminus');
+    var counterSpan2 = document.getElementById('cfm');
+    var incrementBtn2 = document.getElementById('damperbtnplus');
+    var decrementBtn2 = document.getElementById('damperbtnminus');
+    var counterSpan3 = document.getElementById('setpoint');
+    var incrementBtn3 = document.getElementById('setpointbtnplus');
+    var decrementBtn3 = document.getElementById('setpointbtnminus');
+
+    function light1off() {
+      light1switch = 0;
+      sendData();
+    }
+
+    function light1on() {
+      light1switch = 1;
+      sendData();
+    }
+
+    function light2off() {
+      light2switch = 0;
+      sendData();
+    }
+
+    function light2on() {
+      light2switch = 1;
+      sendData();
+    }
+
+    function light3off() {
+      light3switch = 0;
+      sendData();
+    }
+
+    function light3on() {
+      light3switch = 1;
+      sendData();
+    }
+
+    function dx_coil_off() {
+      dxcoil_switch = 0;
+      sendData();
+    }
+
+    function dx_coil_on() {
+      dxcoil_switch = 1;
+      sendData();
+    }
+
+    function damperoff() {
+      damperswitch = 0;
+      sendData();
+    }
+
+    function damperauto() {
+      damperswitch = 1;
+      sendData();
+    }
+
+
+
+    function shutteroff() {
+      shutterswitch = 1;
+      sendData();
+    }
+
+    function shutteron() {
+      shutterswitch = 0;
+      sendData();
+    }
+
+    function TVoff() {
+      TVswitch = 0;
+      sendData();
+    }
+
+    function TVon() {
+      TVswitch = 1;
+      sendData();
+    }
+
+    function curtainoff() {
+      curtainswitch = 0;
+      sendData();
+    }
+
+    function curtainon() {
+      curtainswitch = 1;
+      sendData();
+    }
+
+
+    function sendData() {
+      let datatoesp = {};
+      // const counterSpan = document.getElementById('intensity');
+      // const counterSpan2 = document.getElementById('cfm');
+      // const counterSpan3 = document.getElementById('setpoint');
+      // const counterSpan4 = document.getElementById('intensity1');
+
+      // const temp1 = parseInt(counterSpan.textContent);
+      // const temp2 = parseInt(counterSpan2.textContent);
+      // const temp3 = parseInt(counterSpan3.textContent);
+      // const temp4 = parseInt(counterSpan4.textContent);
+
+      datatoesp = {
+        SW1: light1switch,
+        SW2: light2switch,
+        SW3: TVswitch,
+        SW4: damperswitch,
+        SW5: shutterswitch,
+        SW6: curtainswitch,
+        SW7: dxcoil_switch,
+        SW8: light3switch,
+        // LOAD1_DIM: temp1,
+        // LOAD2_DIM: temp4,
+        // DAM_CFM: temp2,
+        // SEASON: seasonswitch,
+        // SETPOINT: temp3
+
+      };
+
+      console.log(datatoesp);
+
+      var xhttp = new XMLHttpRequest();
+      xhttp.open("POST", "/SendDataByWeb", true);
+      xhttp.setRequestHeader("Content-type", "application/json");
+      xhttp.send(JSON.stringify(datatoesp));
+    }
+
+    function updateValues() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+          var data = JSON.parse(this.responseText);
+          console.log(data);
+
+          if (data.value1 == 0) {
+
+            document.getElementById("toggle-1").classList.remove("on");
+            document.getElementById("toggle-1").classList.add("off");
+            document.getElementById("toggle-1").textContent = "OFF";
+            light1switch = 0;
+          } else {
+
+            document.getElementById("toggle-1").classList.remove("off");
+            document.getElementById("toggle-1").classList.add("on");
+            document.getElementById("toggle-1").textContent = "ON";
+            light1switch = 1;
+          }
+
+          if (data.value2 == 0) {
+            document.getElementById("toggle-2").classList.remove("on");
+            document.getElementById("toggle-2").classList.add("off");
+            document.getElementById("toggle-2").textContent = "OFF";
+            light2switch = 0;
+          } else {
+            document.getElementById("toggle-2").classList.remove("off");
+            document.getElementById("toggle-2").classList.add("on");
+            document.getElementById("toggle-2").textContent = "ON";
+            light2switch = 1;
+          }
+
+
+          if (data.value10 == 0) {
+            document.getElementById("toggle-6").classList.remove("on");
+            document.getElementById("toggle-6").classList.add("off");
+            document.getElementById("toggle-6").textContent = "OFF";
+            light3switch = 0;
+          } else {
+            document.getElementById("toggle-6").classList.remove("off");
+            document.getElementById("toggle-6").classList.add("on");
+            document.getElementById("toggle-6").textContent = "ON";
+            light3switch = 1;
+          }
+
+          if (data.value3 == 0) {
+            document.getElementById("toggle-3").classList.remove("on");
+            document.getElementById("toggle-3").classList.add("off");
+            document.getElementById("toggle-3").textContent = "OFF";
+            TVswitch = 0;
+          } else {
+            document.getElementById("toggle-3").classList.remove("off");
+            document.getElementById("toggle-3").classList.add("on");
+            document.getElementById("toggle-3").textContent = "ON";
+            TVswitch = 1;
+          }
+
+          if (data.value4 == 0) {
+            // document.getElementById("curtainbtn1").textContent = "OFF";
+            curtainswitch = 0;
+          }
+          else if (data.value4 == 1) {
+            // document.getElementById("curtainbtn2").textContent = "ON";
+            curtainswitch = 1;
+          }
+          else {
+            // document.getElementById("curtainbtn2").textContent = "ON";
+            curtainswitch = 2;
+          }
+
+          if (data.value5 == 0) {
+            document.getElementById("toggle-4").classList.remove("on");
+            document.getElementById("toggle-4").classList.add("off");
+            document.getElementById("toggle-4").textContent = "OFF";
+            dxcoil_switch = 0;
+          } else {
+            document.getElementById("toggle-4").classList.remove("off");
+            document.getElementById("toggle-4").classList.add("on");
+            document.getElementById("toggle-4").textContent = "ON";
+            dxcoil_switch = 1;
+          }
+          if (data.value6 == 0) {
+            document.getElementById("toggle-5").classList.remove("on");
+            document.getElementById("toggle-5").classList.add("off");
+            document.getElementById("toggle-5").textContent = "OFF";
+            damperswitch = 0;
+          } else {
+            document.getElementById("toggle-5").classList.remove("off");
+            document.getElementById("toggle-5").classList.add("on");
+            document.getElementById("toggle-5").textContent = "ON";
+            damperswitch = 1;
+          }
+
+          if (data.value7 == 0) {
+            // document.getElementById("shutterbtn1").textContent = "ON";
+
+            shutterswitch = 0;
+          } else if (data.value7 == 1) {
+            // document.getElementById("shutterbtn2").textContent = "ON";
+
+            shutterswitch = 1;
+          }
+          else {
+            shutterswitch = 2;
+          }
+          document.getElementById("TIME").innerHTML = data.value8;
+          document.getElementById("TEMP").innerHTML = `${data.value9}°C`;
+        }
+      };
+      xhttp.open("GET", "/update_paramtowebdashboard", true);
+      xhttp.send();
+    }
+
+    setInterval(updateValues, 1000);
+  </script>
+</body>
+
+</html>

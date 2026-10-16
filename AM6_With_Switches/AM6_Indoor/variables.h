@@ -165,8 +165,8 @@ String devicename = "AM6-AAA001";
 // =====================================================
 String device_topic_s_m = "/test/" + devicename + "/#";
 String device_topic_s_control = "/test/" + devicename + "/2";
-String device_topic_s_outdoor_sensor = "/test/" + devicename + "/3";
-String device_topic_s_indoor_sensor = "/test/" + devicename + "/4";
+String device_topic_s_indoor_sensor = "/test/" + devicename + "/3";
+String device_topic_s_outdoor_sensor = "/test/" + devicename + "/4";
 
 String device_topic_p_main = "/KRC/" + devicename;
 // Canonical topic uses the device name exactly (hyphen).

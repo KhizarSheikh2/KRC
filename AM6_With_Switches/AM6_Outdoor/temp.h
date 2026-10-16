@@ -236,10 +236,27 @@ inline bool setOutdoorSensorConfig(const uint8_t *address, uint8_t role, float o
   return true;
 }
 
+inline bool isOutdoorRoleAssigned(uint8_t role)
+{
+  if (role < 1 || role > TEMP_SENSOR_COUNT) return false;
+
+  // Persistent ROM configuration is authoritative even when the assigned
+  // sensor is physically disconnected.
+  for (uint8_t i = 0; i < TEMP_SENSOR_COUNT; i++)
+  {
+    if (!tempAddressIsEmpty(storedSensorConfig[i].address) &&
+        storedSensorConfig[i].role == role)
+      return true;
+  }
+  return false;
+}
+
 inline float getOutdoorRoleTemperature(uint8_t role, bool &valid)
 {
   valid = false;
-  if (role < 1 || role > TEMP_SENSOR_COUNT) return TEMP_INVALID_VALUE;
+  if (role < 1 || role > TEMP_SENSOR_COUNT) return TEMP_NOT_SELECTED_VALUE;
+
+  if (!isOutdoorRoleAssigned(role)) return TEMP_NOT_SELECTED_VALUE;
 
   for (uint8_t i = 0; i < TEMP_SENSOR_COUNT; i++)
   {
@@ -250,6 +267,7 @@ inline float getOutdoorRoleTemperature(uint8_t role, bool &valid)
     return temperature[i] + tempSensorOffset[i];
   }
 
+  // Assigned persistently, but the corresponding physical probe is absent.
   return TEMP_INVALID_VALUE;
 }
 

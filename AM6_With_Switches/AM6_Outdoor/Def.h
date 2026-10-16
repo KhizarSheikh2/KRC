@@ -15,6 +15,7 @@
 #define DS18B20_PIN 25
 #define TEMP_SENSOR_COUNT 6
 #define TEMP_INVALID_VALUE 888.0f
+#define TEMP_NOT_SELECTED_VALUE 999.0f
 #define TEMP_CONVERSION_MS 750UL
 
 // =====================================================

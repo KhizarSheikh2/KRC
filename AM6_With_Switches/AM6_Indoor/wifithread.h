@@ -499,8 +499,8 @@ void reconnect() {
     const bool subIndoor = client.subscribe(device_topic_s_indoor_sensor.c_str());
 
     Serial.print("[MQTT] SUB /2 control: "); Serial.println(subControl ? "OK" : "FAILED");
-    Serial.print("[MQTT] SUB /3 outdoor config: "); Serial.println(subOutdoor ? "OK" : "FAILED");
-    Serial.print("[MQTT] SUB /4 indoor config: "); Serial.println(subIndoor ? "OK" : "FAILED");
+    Serial.print("[MQTT] SUB /3 indoor config: "); Serial.println(subIndoor ? "OK" : "FAILED");
+    Serial.print("[MQTT] SUB /4 outdoor config: "); Serial.println(subOutdoor ? "OK" : "FAILED");
 
     if (!subControl || !subOutdoor || !subIndoor) {
       Serial.println("[MQTT] ERROR: one or more application receive topics are NOT subscribed");

@@ -137,15 +137,26 @@ inline bool displayLinkPostAuthoritativeState() {
     return false;
   }
 
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument<2048> doc;
   doc["powersw"] = system_power;
   doc["fanSw"] = fanSpeedToMqttFanSw();
   doc["mode"] = hvac_mode;
-  doc["setPoint"] = setPoint;
+  doc["setPoint"] = appTemperatureValue(setPoint);
   doc["indoorsw"] = indoor_sw;
   doc["outdoorsw"] = outdoor_sw;
-  doc["supply"] = mqttTemperatureValue(SupplyTempC);
-  doc["return"] = mqttTemperatureValue(ReturnTempC);
+  doc["supply"] = appTemperatureValue(SupplyTempC);
+  doc["return"] = appTemperatureValue(ReturnTempC);
+
+  // Send the twelve CONFIGURED role temperatures to the monitoring Display.
+  // 999 = unassigned role; 888 = assigned role with disconnected/unavailable sensor.
+  for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; ++i) {
+    const String key = "temp" + String(i + 1) + "in";
+    doc[key] = appTemperatureValue(getIndoorRoleTemperature(static_cast<uint8_t>(i + 1)));
+  }
+  for (uint8_t i = 0; i < OUTDOOR_SENSOR_COUNT; ++i) {
+    const String key = "temp" + String(i + 1) + "out";
+    doc[key] = appTemperatureValue(getOutdoorRoleTemperatureForPublish(static_cast<uint8_t>(i + 1)));
+  }
   doc["statusout"] = effectiveOutdoorStatusForPublish();
   doc["statusoutB"] = effectiveOutdoorStatusBForPublish();
   doc["outdoor_online"] = rs485_outdoor_online ? 1 : 0;

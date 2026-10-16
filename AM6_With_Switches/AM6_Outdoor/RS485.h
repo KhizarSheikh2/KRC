@@ -362,10 +362,15 @@ inline void sendOutdoorStatusResponse()
     if (roleValid && isfinite(roleTemp) && roleTemp != TEMP_INVALID_VALUE)
       roleValidMask |= static_cast<uint8_t>(1U << i);
 
+    // Preserve role state in-band without changing the v3 packet layout:
+    //   9990 = role not assigned
+    //   8880 = role assigned but probe unavailable
+    //   other = actual x0.1 C, with roleValidMask bit set
+    const float encodedRoleTemp = isfinite(roleTemp) ? roleTemp : TEMP_INVALID_VALUE;
     rs485PutInt16LE(
       payload,
       static_cast<uint8_t>(AM6_RS485_STATUS_ROLE_TEMP_BASE + i * 2),
-      rs485EncodeTemperature((roleValid && isfinite(roleTemp)) ? roleTemp : TEMP_INVALID_VALUE)
+      rs485EncodeTemperature(encodedRoleTemp)
     );
 
     const bool physicalValid = tempSensorPresent[i] &&

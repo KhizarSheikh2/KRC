@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAN Coil Unit Control</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1d1d30, #252540);
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Main container styling */
+        .control-panel {
+            background: #3b3b52;
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 280px;
+            text-align: center;
+            color: #ffffff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Icon styling */
+        .control-panel img {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 15px;
+        }
+
+        /* Title styling */
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #00d2ff;
+            margin-bottom: 20px;
+        }
+
+        /* Temperature control section */
+        .temp-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #464667;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .temp-control span {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Temperature control buttons */
+        .temp-button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+        .temp-button.up {
+            background: linear-gradient(135deg, #ff4b4b, #ff1e1e);
+        }
+
+        .temp-button.down {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .temp-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* Settings buttons styling */
+        .setting-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .setting-button {
+            padding: 12px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .setting-button:hover {
+            transform: scale(1.05);
+        }
+
+        #icon {
+            font-size: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="control-panel">
+        <!-- dx Coil Unit Icon -->
+        <span id="icon" style="color: rgb(7, 168, 221);">✇</span>
+
+        <!-- Title -->
+        <div class="title">FAN Coil Unit</div>
+
+        <!-- Temperature Control Section -->
+        <div class="temp-control">
+            <button class="temp-button up" onclick="adjustTemp(1)">+</button>
+            <span id="tempDisplay">`${temperature}°C`</span>
+            <button class="temp-button down" onclick="adjustTemp(-1)">−</button>
+        </div>
+
+        <!-- season and Set Point Options -->
+        <div class="setting-buttons">
+            <button class="setting-button" onclick="toggleseason()">Set Season: <span
+                    id="seasonText">season</span></button>
+            <button class="setting-button" onclick="togglesetMode()">Set Mode: <span
+                    id="setModeText">setMode</span></button>
+            <button class="setting-button" onclick="togglestatus()">Set Status: <span
+                    id="statusText">status</span></button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript to handle temperature and season changes
+
+        let temperature = 32;
+        let season = "Summer";
+        let setMode = "OFF";
+        let status = "On";
+        var dxswitch = 0;
+        var seasonswitch = 0;
+        var modeswitch = 0;
+        var statusswitch = 0
+
+        // function adjustTemp(change) {
+        //     temperature += change;
+        //     document.getElementById("tempDisplay").innerText = `${temperature}°C`;
+        // }
+
+        function adjustTemp(change) {
+            if (change == 1 && temperature >= 40) {
+                return;
+            }
+            if (change == -1 && temperature <= 0) {
+                return;
+            }
+
+            temperature += change;
+            console.log(temperature);
+            document.getElementById("tempDisplay").innerText = `${temperature}°C`;
+
+            sendData2();
+        }
+
+
+        // function toggleseason() {
+        //     season = (season === "Heating") ? "Cooling" : "Heating";
+        //     document.getElementById("seasonText").innerText = season;
+        // }
+
+        function togglesetMode() {
+            if (setMode === "Low") {
+                setMode = "Medium";
+                modeswitch = 1;
+            } else if (setMode === "Medium") {
+                setMode = "High";
+                modeswitch = 0;
+
+            } else {
+                setMode = "Low";
+                modeswitch = 2;
+            }
+            document.getElementById("setModeText").innerText = setMode;
+            sendData2();
+        }
+
+        function toggleseason() {
+            season = (season === "Winter") ? "Summer" : "Winter";
+            document.getElementById("seasonText").innerText = season;
+            if (season == "Winter") {
+                seasonswitch = 0;
+            }
+            else {
+                seasonswitch = 1;
+            }
+            sendData2();
+        }
+        function togglestatus() {
+            status = (status === "On") ? "Off" : "On";
+            document.getElementById("statusText").innerText = status;
+            if (status == "Off") {
+                statusswitch = 0;
+            }
+            else {
+                statusswitch = 1;
+            }
+            sendData2();
+        }
+
+        function sendData2() {
+            let datatoesp = {};
+            const dxcoilsetpoint = document.getElementById("tempDisplay");
+            // const dampcfm = document.getElementById("cfmDisplay");
+            // const dxcoilseason = document.getElementById("seasonText");
+            // const dxcoilmode = document.getElementById("setModeText");
+
+            const temp3 = parseInt(dxcoilsetpoint.textContent);
+            // const temp4 = parseInt(dampcfm.textContent);
+
+            datatoesp = {
+                // SW7: damperswitch,
+                // DAM_CFM: temp4,
+                dxSEASON: seasonswitch,
+                dxSETPOINT: temp3,
+                dxMODE: modeswitch,
+                dxCOILPOWER: statusswitch
+            };
+
+            console.log(datatoesp);
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", "/sendDatadxcoil", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send(JSON.stringify(datatoesp));
+        }
+
+        function updateValuesdxcoil() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var data = JSON.parse(this.responseText);
+                    console.log(data);
+
+                    if (data.value1 == 2) {
+                        document.getElementById("setModeText").innerText = "Low";
+                        modeswitch = 2;
+                    } else if (data.value1 == 1) {
+                        document.getElementById("setModeText").innerText = "Medium";
+                        modeswitch = 1;
+                    } else {
+                        document.getElementById("setModeText").innerText = "High";
+                        modeswitch = 0;
+                    }
+
+                    if (data.value2 == 0) {
+                        document.getElementById("seasonText").innerText = "Winter";
+                        seasonswitch = 0;
+                    } else {
+                        document.getElementById("seasonText").innerText = "Summer";
+                        seasonswitch = 1;
+                    }
+
+                    if (data.value4 == 0) {
+                        document.getElementById("statusText").innerText = "Off";
+                        statusswitch = 0;
+                    } else {
+                        document.getElementById("statusText").innerText = "On";
+                        statusswitch = 1;
+                    }
+
+                    // document.getElementById("tempDisplay").innerText = data.value5;
+
+                    if (data.value3 > 40) {
+                        data.value3 = document.getElementById("tempDisplay").innerText;
+                    }
+                    else if (data.value3 <= 0) {
+                        data.value3 = document.getElementById("tempDisplay").innerText;
+                    }
+
+                    document.getElementById("tempDisplay").innerText = `${data.value3}°C`;
+                    // document.getElementById("cfmDisplay").innerText = `${data.value2}%`;
+                    // document.getElementById("TEMP").innerText = `${data.value3}°C`;
+                    // setcfm = parseInt(data.value2);
+                    temperature = parseInt(data.value3);
+
+
+                }
+            };
+            xhttp.open("GET", "/update_web_dxcoil", true);
+            xhttp.send();
+        }
+
+        setInterval(updateValuesdxcoil, 1000);
+    </script>
+</body>
+
+</html>

@@ -148,6 +148,21 @@ inline void loadIndoorStoredSensorConfig() {
   if (changed) saveIndoorStoredSensorConfig();
 }
 
+inline bool isIndoorRoleAssigned(uint8_t role) {
+  if (role < 1 || role > INDOOR_SENSOR_COUNT) return false;
+
+  // Assignment is persistent by ROM address. This remains true even when the
+  // assigned DS18B20 is physically disconnected, allowing the app/display to
+  // distinguish 888 (assigned but unavailable) from 999 (not assigned).
+  for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; i++) {
+    if (!addressIsEmpty(storedIndoorSensorConfig[i].address) &&
+        storedIndoorSensorConfig[i].role == role) {
+      return true;
+    }
+  }
+  return false;
+}
+
 inline void applyIndoorStoredConfigurationToDetectedSensors() {
   for (uint8_t i = 0; i < INDOOR_SENSOR_COUNT; i++) {
     tempSensorRole[i] = 0;

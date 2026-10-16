@@ -1,0 +1,55 @@
+AP-DP - 1.8" ST7735 SPI TFT DISPLAY CONFIGURATION
+===================================================
+
+DISPLAY
+-------
+1.8" TFT SPI 128x160 V1.1 (ST7735)
+Landscape orientation: 160 x 128
+Touch: NOT USED
+Theme: Industrial LIGHT mode
+
+TFT WIRING USED BY THIS LATEST PROJECT
+--------------------------------------
+TFT SCK        -> ESP32 GPIO 14
+TFT SDA/MOSI   -> ESP32 GPIO 23
+TFT A0/DC      -> ESP32 GPIO 16
+TFT RST        -> ESP32 GPIO 17
+TFT CS         -> ESP32 GPIO 5
+TFT MISO       -> Not connected
+
+OTHER ACTIVE PINS IN THE LATEST PROJECT
+---------------------------------------
+IR receiver    -> ESP32 GPIO 22
+Buzzer         -> ESP32 GPIO 19
+Servo          -> ESP32 GPIO 27
+Pot feedback   -> ESP32 GPIO 34
+
+DISPLAY CONTENT
+---------------
+The fixed dashboard now shows:
+- Power: ON / OFF
+- Season: SUMMER / WINTER
+- Supply temperature: one decimal place, e.g. 18.5C
+- Return temperature: one decimal place, e.g. 27.2C
+- Setpoint: one decimal place, e.g. 24.0C
+- CFM: 0-100% with a compact airflow/progress bar
+
+UI DESIGN
+---------
+- Cool off-white light background
+- White cards
+- Deep navy primary text/header
+- Cool-grey borders and subtle card separation
+- Technical blue accent markers
+- Green Power ON / CFM
+- Red Power OFF
+- Amber Summer
+- Blue Winter
+- Changed-region redraws only to reduce TFT flicker
+- Supply/Return temperatures show --.-C if thermostat communication becomes stale
+
+SETPOINT DATA
+-------------
+No new JSON field was required. The existing setpointt variable is already
+updated from the incoming "setpoint" field in /from_therm and from the IR
+remote. The TFT now caches and redraws that value automatically.

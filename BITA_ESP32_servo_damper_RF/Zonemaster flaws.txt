@@ -1,0 +1,4 @@
+Syncing of Parameters accross app, cloud and thermostat.
+[Case: Scheduler enabled from therm synced to app but, damper activity abnormal.]
+
+Macaddress Case letter handling. 

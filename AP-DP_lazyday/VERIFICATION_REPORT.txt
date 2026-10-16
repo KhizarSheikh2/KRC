@@ -1,0 +1,52 @@
+AP-DP ST7735 LIGHT UI UPDATE - VERIFICATION REPORT
+==================================================
+
+SCOPE
+-----
+This pass used the latest user-provided AP-DP project as the source of truth.
+The AP-DP control/Wi-Fi/MQTT/IR/servo logic was preserved. Changes were focused
+on the ST7735 dashboard and Setpoint presentation.
+
+VERIFIED DATA FLOW
+------------------
+- supply_temp -> displaySupplyTemp -> TFT SUPPLY
+- return_temp -> displayReturnTemp -> TFT RETURN
+- setpoint -> setpointt -> TFT SETPOINT
+- powerstate/power -> beca_power -> TFT POWER
+- season -> beca_mode -> TFT SEASON
+- end_value -> TFT CFM percentage/bar
+
+UI CHANGES VERIFIED
+-------------------
+1. Added live SETPOINT display.
+2. Setpoint is formatted with one decimal place (example 24.0C).
+3. Supply and Return remain one-decimal readings.
+4. Added industrial light-mode palette.
+5. Power and Season use compact status pills.
+6. CFM retains a percentage and proportional bar.
+7. All six requested values fit inside the 160x128 landscape bounds.
+8. Dynamic fields use cached/partial redraws; the full screen is not cleared
+   during normal updates.
+9. Temperature timeout invalidation continues to work.
+10. No touch UI was introduced.
+
+PIN CONFIGURATION VERIFIED FROM LATEST SOURCE
+---------------------------------------------
+TFT SCK=14, MOSI/SDA=23, DC/A0=16, RST=17, CS=5
+IR=22, Buzzer=19, Servo=27, Pot=34
+No duplicate active GPIO was found among these functions.
+
+STATIC CHECKS
+-------------
+- TFT_Display.h strict C++ syntax harness: PASS
+  Flags: -Wall -Wextra -Wpedantic
+- Setpoint cache/redraw path present: PASS
+- Existing /from_therm setpoint update path present: PASS
+- Display bounds/layout review for 160x128: PASS
+
+BUILD NOTE
+----------
+A full ESP32 firmware binary compile requires the exact Arduino-ESP32 core and
+installed library versions from the development machine. This environment did
+not contain arduino-cli/PlatformIO, so the display module was syntax-checked
+with a strict local C++ stub harness rather than a board firmware build.

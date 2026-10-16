@@ -22,24 +22,30 @@
 #include "wifithread.h"
 
 int convertToFahrenheit(float temp) {
+  if (temp == SENSOR_NOT_SELECTED) return 999;
   if (temp == SENSOR_DISCONNECTED || isnan(temp)) return 888;
   return static_cast<int>(roundf(((temp * 9.0f) / 5.0f) + 32.0f));
 }
 
-void resetPublishedTemperatures() {
-  SuctionTempC = SENSOR_DISCONNECTED;
-  dischargeTempC = SENSOR_DISCONNECTED;
-  SupplyTempC = SENSOR_DISCONNECTED;
-  ReturnTempC = SENSOR_DISCONNECTED;
-  OilTempC = SENSOR_DISCONNECTED;
-  OtherTempC = SENSOR_DISCONNECTED;
+inline float indoorRoleIdleValue(uint8_t role) {
+  return isIndoorRoleAssigned(role) ? SENSOR_DISCONNECTED : SENSOR_NOT_SELECTED;
+}
 
-  SuctionTemp = 888;
-  dischargeTemp = 888;
-  SupplyTemp = 888;
-  ReturnTemp = 888;
-  OilTemp = 888;
-  OtherTemp = 888;
+void resetPublishedTemperatures() {
+  // Preserve assignment semantics even when an assigned probe disappears.
+  SuctionTempC   = indoorRoleIdleValue(1);
+  dischargeTempC = indoorRoleIdleValue(2);
+  SupplyTempC    = indoorRoleIdleValue(3);
+  ReturnTempC    = indoorRoleIdleValue(4);
+  OilTempC       = indoorRoleIdleValue(5);
+  OtherTempC     = indoorRoleIdleValue(6);
+
+  SuctionTemp   = (SuctionTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
+  dischargeTemp = (dischargeTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
+  SupplyTemp    = (SupplyTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
+  ReturnTemp    = (ReturnTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
+  OilTemp       = (OilTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
+  OtherTemp     = (OtherTempC == SENSOR_NOT_SELECTED) ? 999 : 888;
 }
 
 void refreshTemperatureSensorList() {

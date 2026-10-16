@@ -25,6 +25,15 @@ inline bool indoorOutputsEnabled() {
   return system_power == 1 && indoor_sw == 1;
 }
 
+// Outdoor compressors/condensers are COOL-only equipment. The application
+// outdoorsw remains the user's section-enable setting, while this effective
+// command additionally inhibits the complete Outdoor refrigeration section in
+// HEAT mode. Returning to COOL lets the Outdoor controller apply its own
+// independent 5-second restart qualification for Circuit A and Circuit B.
+inline int outdoorCoolingEnableCommand() {
+  return (outdoor_sw == 1 && hvac_mode == MODE_COOL) ? 1 : 0;
+}
+
 inline void allFanRelaysOff() {
   relayWrite(RELAY_LOW_PIN, false);
   relayWrite(RELAY_MEDIUM_PIN, false);
@@ -95,6 +104,13 @@ inline bool setHVACMode(int requestedMode) {
   if (hvac_mode == requestedMode) return true;
 
   hvac_mode = requestedMode;
+
+  // Mode changes are safety-significant for the Outdoor section:
+  // HEAT -> command Outdoor disabled immediately; COOL -> command enabled and
+  // let Outdoor complete its independent 5-second anti-short-cycle delay.
+  rs485_urgent_outdoor_sync = true;
+  mqtt_publish_requested = true;
+
   applyHVACMode();
   return true;
 }

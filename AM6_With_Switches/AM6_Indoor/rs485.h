@@ -147,13 +147,13 @@ inline void rs485PutInt16LE(uint8_t* buffer, uint8_t index, int16_t value) {
 // =====================================================
 // OUTDOOR STATUS + AUTHORITATIVE POWER SYNCHRONIZATION
 // Protocol v3 status request:
-// [0] version, [1] system_power, [2] outdoorsw
+// [0] version, [1] system_power, [2] effective Outdoor COOL enable
 // =====================================================
 inline void rs485BeginOutdoorStatusTransaction() {
   uint8_t payload[AM6_RS485_STATUS_REQUEST_LEN] = {0};
   payload[AM6_RS485_STATUS_REQ_VERSION] = AM6_RS485_PROTOCOL_VERSION;
   payload[AM6_RS485_STATUS_REQ_SYSTEM_POWER] = static_cast<uint8_t>(system_power == 1 ? 1 : 0);
-  payload[AM6_RS485_STATUS_REQ_OUTDOOR_ENABLE] = static_cast<uint8_t>(outdoor_sw == 1 ? 1 : 0);
+  payload[AM6_RS485_STATUS_REQ_OUTDOOR_ENABLE] = static_cast<uint8_t>(outdoorCoolingEnableCommand());
 
   rs485ClearStaleRx();
   rs485SendFrame(RS485_ADDR_OUTDOOR,
@@ -170,8 +170,8 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   // B0 payload length 46 (protocol v3):
   // [0]      version
   // [1]      authoritative system_power echo
-  // [2]      outdoorsw echo
-  // [3]      effective Outdoor enable = system_power && outdoorsw
+  // [2]      effective Outdoor COOL-enable echo
+  // [3]      effective Outdoor power = system_power && COOL-enable
   // [4]      statusout  = Circuit A, SW1..SW4 -> R1/R3
   // [5]      statusoutB = Circuit B, SW5..SW8 -> R2/R4
   // [6]      valid mask for configured role temperatures 1..6
@@ -222,12 +222,17 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   const uint8_t physicalValidMask = frame.payload[AM6_RS485_STATUS_PHYSICAL_VALID_MASK];
 
   for (uint8_t i = 0; i < OUTDOOR_SENSOR_COUNT; i++) {
+    const int16_t roleRaw = rs485GetInt16LE(
+      frame.payload, static_cast<uint8_t>(AM6_RS485_STATUS_ROLE_TEMP_BASE + i * 2));
     outdoorRoleTempValid[i] = (roleValidMask & (1U << i)) != 0;
     if (outdoorRoleTempValid[i]) {
-      outdoorRoleTempC[i] = static_cast<float>(
-        rs485GetInt16LE(frame.payload, static_cast<uint8_t>(AM6_RS485_STATUS_ROLE_TEMP_BASE + i * 2))) / 10.0f;
+      outdoorRoleTempC[i] = static_cast<float>(roleRaw) / 10.0f;
+    }
+    else if (roleRaw == 9990) {
+      outdoorRoleTempC[i] = SENSOR_NOT_SELECTED;
     }
     else {
+      // Assigned role with unavailable/disconnected probe.
       outdoorRoleTempC[i] = SENSOR_DISCONNECTED;
     }
 
@@ -274,7 +279,8 @@ inline void rs485HandleOutdoorStatus(const RS485RxFrame& frame) {
   }
 
   // Outdoor may have rebooted or missed a master-state change.
-  if (outdoorPowerEcho != system_power || outdoorEnableEcho != outdoor_sw) {
+  const int expectedOutdoorEnable = outdoorCoolingEnableCommand();
+  if (outdoorPowerEcho != system_power || outdoorEnableEcho != expectedOutdoorEnable) {
     rs485_urgent_outdoor_sync = true;
   }
 }

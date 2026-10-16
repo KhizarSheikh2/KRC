@@ -1,0 +1,35 @@
+AP-DP ST7735 UI UPDATE - LIGHT INDUSTRIAL THEME
+================================================
+
+Source used:
+- Latest user-provided AP-DP_lazyday(1).zip
+
+Changes made:
+1. Added SETPOINT to the live TFT dashboard.
+2. Setpoint reads the existing setpointt variable; no communication protocol change was required.
+3. Redesigned the entire 160x128 landscape TFT into a light industrial theme.
+4. Dashboard now displays:
+   - Power
+   - Season
+   - Supply temperature
+   - Return temperature
+   - Setpoint
+   - CFM percentage
+5. Supply, Return and Setpoint are shown with one decimal place.
+6. Added compact status pills for Power and Season.
+7. Added a small CFM progress bar.
+8. Retained partial/changed-region redraws to minimize SPI flicker.
+9. Preserved the TFT pin configuration from the latest uploaded project:
+   SCK=14, MOSI/SDA=23, DC/A0=16, RST=17, CS=5.
+10. No touch code was added.
+11. Existing AP-DP control, Wi-Fi, MQTT, IR, servo and thermostat JSON logic was intentionally preserved.
+
+LIGHT THEME STYLE
+- Background: cool off-white
+- Cards: white
+- Primary text: deep navy
+- Borders: light cool grey
+- Accent: technical blue
+- Power ON: green / OFF: red
+- Summer: amber / Winter: blue
+- CFM: green
